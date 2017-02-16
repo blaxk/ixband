@@ -13,6 +13,7 @@ ixBand.event.DoubleTab = $B.Class.extend({
         this._target = $B( target ).element();
         this._delay = 400;
         this._setEvents();
+        return this;
     },
 
     // ===============	Public Methods	=============== //

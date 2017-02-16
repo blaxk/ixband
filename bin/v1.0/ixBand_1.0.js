@@ -1766,11 +1766,13 @@
         /**
          * @param {String}    type      event type
          * @param {Function}  callback
+         * @param {Object}    eventPool 대체할 eventPool, 상속 관계에서 별도의 eventPool을 지정할때 사용한다.
          */
-        addListener: function ( type, callback ) {
+        addListener: function ( type, callback, eventPool ) {
             if ( typeof type === 'string' && typeof callback === 'function' && !this.hasListener(type, callback) ) {
-                var events = this.__eventPool__[type];
-                if ( !events ) events = this.__eventPool__[type] = [];
+                var evtPool = $B.isObject( eventPool ) || this.__eventPool__,
+                    events = evtPool[type];
+                if ( !events ) events = evtPool[type] = [];
                 events.push( callback );
             }
     
@@ -1780,9 +1782,11 @@
         /**
          * @param {String}    type      event type
          * @param {Function}  callback
+         * @param {Object}    eventPool 대체할 eventPool, 상속 관계에서 별도의 eventPool을 지정할때 사용한다.
          */
-        removeListener: function ( type, callback ) {
-            var events = this.__eventPool__[type];
+        removeListener: function ( type, callback, eventPool ) {
+            var evtPool = $B.isObject( eventPool ) || this.__eventPool__,
+                events = evtPool[type];
     
             if ( events ) {
                 if ( typeof callback === 'function' ) {
@@ -1794,9 +1798,9 @@
                         }
                     }
                 } else if ( type ) {
-                    delete this.__eventPool__[type];
+                    delete evtPool[type];
                 } else {
-                    this.__eventPool__ = {};
+                    evtPool = {};
                 }
             }
     
@@ -1806,11 +1810,13 @@
         /**
          * @param   {String}    type      event type
          * @param   {Function}
+         * @param   {Object}    eventPool 대체할 eventPool, 상속 관계에서 별도의 eventPool을 지정할때 사용한다.
          * @return  {Boolean}
          */
-        hasListener: function ( type, callback ) {
+        hasListener: function ( type, callback, eventPool ) {
             var result = false,
-                events = this.__eventPool__[type];
+                evtPool = $B.isObject( eventPool ) || this.__eventPool__,
+                events = evtPool[type];
     
             if ( events ) {
                 if ( typeof callback === 'function' ) {
@@ -1832,10 +1838,12 @@
         /**
          * @param {String}  type     event type
          * @param {Object}  datas
+         * @param {Object}  eventPool 대체할 eventPool, 상속 관계에서 별도의 eventPool을 지정할때 사용한다.
          */
-        dispatch: function ( type, datas ) {
+        dispatch: function ( type, datas, eventPool ) {
             var _this = this,
-                events = this.__eventPool__[type];
+                evtPool = $B.isObject( eventPool ) || this.__eventPool__,
+                events = evtPool[type];
     
             if ( events ) {
                 var evtLength = events.length;
@@ -1889,7 +1897,7 @@
         if ( typeof methods === 'object' ) {
             var Class = function () {
                 if ( typeof this.initialize === 'function' ) {
-                    this.initialize.apply( this, arguments );
+                    return this.initialize.apply( this, arguments );
                 }
             };
     
@@ -3304,12 +3312,14 @@
      * @class	{Delay}
      * @constructor
      */
-    ixBand.utils.Delay = function () {
-        this._delays = {};
-        this._count = 0;
-    };
+    ixBand.utils.Delay = $B.Class.extend({
+        initialize: function () {
+            this._delays = {};
+            this._count = 0;
+            return this;
+        },
     
-    ixBand.utils.Delay.prototype = {
+        // ===============	Public Methods =============== //
         /**
          * Delay 시작, 고유 아이디 반환
          * @param	{Number}		delay		1000/1초
@@ -3347,7 +3357,7 @@
             }
             return this;
         }
-    };
+    }, '$B.utils.Delay');
 
 
     // ============================================================== //
@@ -3384,6 +3394,7 @@
                     this.dispatch( 'complete', dday );
                 }
             }, this);
+            return this;
         },
     
         // ===============	Public Methods	=============== //
@@ -3463,6 +3474,7 @@
             this._count = 0;
     
             this._setEvents();
+            return this;
         },
     
         // ===============	Public Methods	=============== //
@@ -3516,141 +3528,52 @@
     // =====================	TweenCore	========================= //
     // ============================================================== //
     /**
-     * TweenCore<br>
+     * TweenCore
+     * Event : tween, complete, seekcomplete
      * Event Property : type, target, currentValue, progress=시간진행률, percent, currentCount, totalCount, data
      * @class	{TweenCore}
      * @constructor
      * @param	{Number}		duration	동작되는 시간, 초
      * @param	{Number}		begin		출발값
      * @param	{Number}		finish		도착값
-     * @param	{Object}		option		onTween: Function, onComplete: Function, onSeekComplete: Function, ease: ixBand.utils.ease 선택, 추가 하여 사용
+     * @param	{Object}		option		ease: ixBand.utils.ease 선택, 추가 하여 사용
      * @param	{Object}		data		이벤트핸들러에서 전달받을수 있다. e.data
      */
-    ixBand.utils.TweenCore = function ( duration, begin, finish, option, data ) {
-        var _ease = ( option && option.ease )? option.ease : $B.utils.ease.quadOut,
-            _onTween = ( option && option.onTween )? option.onTween : null,
-            _onComplete = ( option && option.onComplete )? option.onComplete : null,
-            _onSeekComplete = ( option && option.onSeekComplete )? option.onSeekComplete : null,
-            _finishValue = 0, _cValue = 0, _fps = 0, _loopTime = 0, _currentCount = 0, _interval = null,
-            _progress = 0, _percent = 0, _totalCount = 0, _seekCount = 0, _forward = null, _delay = null, _this = this;
+    ixBand.utils.TweenCore = $B.Class.extend({
+        initialize: function ( duration, begin, finish, option, data ) {
+            this._duration = duration;
+            this._begin = begin;
+            this._finish = finish;
+            this._option = option || {};
+            this._ease = this._option || $B.utils.ease.quadOut;
+            this._data = ( $B.isEmpty(data) )? null : data;
     
-        data = ( data || data == 0 )? data : null;
+            this._finishValue = 0;
+            this._cValue = 0;
+            this._fps = 0;
+            this._loopTime = 0;
+            this._currentCount = 0;
+            this._interval = null;
+            this._progress = 0;
+            this._percent = 0;
+            this._totalCount = 0;
+            this._seekCount = 0;
+            this._forward = null;
+            this._delay = null;
     
-        this._delayTime = 0;
-        this._delayCallback = null;
-        this._seekCom = false;//true면 seekcomplete 발생
+            this._delayTime = 0;
+            this._delayCallback = null;
+            this._seekCom = false;//true면 seekcomplete 발생
     
-        this._setValue = function ( v_begin, v_finish, v_values ) {
-            begin = ( typeof v_begin === 'number' )? v_begin : _cValue;
-            if ( typeof v_finish === 'number' ) finish = v_finish;
-            if ( v_values || v_values == 0 ) data = v_values;
+            this._setValue( this._begin, this._finish );
+            //기본 fps PC : 60, Mobile : 30
+            this._setFPS( ($B.ua.MOBILE_IOS || $B.ua.ANDROID) ? 30 : 60 );
+            this._setEventsHandler();
+            return this;
+        },
     
-            _finishValue = finish - begin;
-        };
+        // ===============	Public Methods =============== //
     
-        this._setValue( begin, finish );
-    
-        this._timerStart = function () {
-            //delayComplete
-            if ( _this._delayCallback ) _this._delayCallback.call( _this, {type: 'delay', data: data} );
-            _this._clearDelay();
-    
-            if (duration <= 0) {
-                _cValue = finish;
-                _progress = 1;
-                _percent = 1;
-                if ( _onTween ) _onTween.call(_this, { type: 'tween', target: _this, currentValue: _cValue, progress: _progress, percent: _percent, currentCount: _currentCount, totalCount: _totalCount, data: data });
-                if ( _onComplete ) _onComplete.call(_this, { type: 'complete', target: _this, currentValue: _cValue, progress: _progress, percent: _percent, currentCount: _currentCount, totalCount: _totalCount, data: data });
-            } else {
-                if ( !_interval ) _interval = setInterval( intervalHandler, _loopTime );
-            }
-        };
-        this._timerStop = function () {
-            if ( _interval ) {
-                clearInterval( _interval );
-                _interval = null;
-            }
-        };
-        this._to = function () {
-            //delayComplete
-            if ( _this._delayCallback ) _this._delayCallback.call( _this, {type: 'delay', data: data} );
-            _this._clearDelay();
-    
-            _currentCount = _seekCount;
-            intervalHandler();
-        };
-        this._reset = function () {
-            _forward = null;
-            _cValue = begin;
-            _progress = 0;
-            _percent = 0;
-            _currentCount = 0;
-        };
-        this._setSeekValue = function ( per ) {
-            _seekCount = Math.round( _totalCount * per );
-    
-            if ( _seekCount > _currentCount ) {
-                _forward = true;
-            } else if ( _seekCount < _currentCount ) {
-                _forward = false;
-            } else {
-                _forward = null;
-            }
-        };
-        this._startDelay = function ( callBack, time ) {
-            if ( !_delay ) _delay = setTimeout( callBack, time );
-        };
-        this._clearDelay = function () {
-            if ( _delay ) {
-                clearTimeout( _delay );
-                _delay = null;
-            }
-            _this._delayTime = 0;
-            _this._delayCallback = null;
-        };
-        this._setFPS = function ( val ) {
-            _fps = val;
-            _loopTime = Math.ceil( 1000 / _fps );
-            _totalCount = Math.ceil( (duration * 1000) / _loopTime );
-        };
-        this._getForward = function () {
-            return _forward;
-        };
-        this._getProgress = function () {
-            return _progress;
-        };
-        //기본 fps PC : 60, Mobile : 30
-        this._setFPS( $B.ua.MOBILE_IOS || $B.ua.ANDROID ? 30 : 60 );
-    
-        function intervalHandler (e) {
-            _cValue = _ease.call( _this, _currentCount, begin, _finishValue, _totalCount );
-            _percent = ( _finishValue == 0 )? 1 : ( _cValue - begin ) / _finishValue;
-            _progress = _currentCount / _totalCount;
-    
-            var evt = { type: '', target: _this, currentValue: _cValue, progress: _progress, percent: _percent, currentCount: _currentCount, totalCount: _totalCount, data: data };
-            //tween
-            if ( _onTween ) evt.type = 'tween', _onTween.call( _this, evt );
-            //complete
-            if ( _currentCount >= _totalCount && _seekCount == _totalCount ) {
-                _this._timerStop();
-    
-                if ( _onComplete ) evt.type = 'complete', _onComplete.call( _this, evt );
-                if ( _onSeekComplete && _this._seekCom ) evt.type = 'seekcomplete', _onSeekComplete.call( _this, evt );
-                return;
-                //seek
-            } else {
-                if ( _currentCount == _seekCount ) {
-                    _this._timerStop();
-                    if ( _onSeekComplete && _this._seekCom ) evt.type = 'seekcomplete', _onSeekComplete.call( _this, evt );
-                    return;
-                }
-                if ( _forward != null ) _currentCount = ( _forward )? ++_currentCount : --_currentCount;
-            }
-    
-        }
-    };
-    
-    ixBand.utils.TweenCore.prototype = {
         /** 해당 초만큼 지연시킨후 다음 Method실행, 한명령줄에 하나의 delay만 사용한다.
          * @param	{Number}	time		초단위, 예) 0.5초
          * @param	{Function}	callback	delay가 끝나는 이벤트 전달
@@ -3736,14 +3659,12 @@
          * @return	this
          */
         toggle: function () {
-            var forword = this._getForward(),
-                progress = this._getProgress(),
-                per = 0;
+            var per = 0;
     
-            if ( forword == null ) {
-                per = ( progress == 0 )? 1 : 0;
+            if ( this._forward == null ) {
+                per = ( this._progress == 0 )? 1 : 0;
             } else {
-                per = ( forword )? 0 : 1;
+                per = ( this._forward )? 0 : 1;
             }
     
             this.seek( per );
@@ -3768,16 +3689,124 @@
         fps: function ( frame ) {
             this._setFPS( frame );
             return this;
+        },
+    
+        // ===============	Private Methods =============== //
+        _setEventsHandler: function () {
+            this._timerStart = $B.bind(function () {
+                //delayComplete
+                if ( this._delayCallback ) this._delayCallback.call( this, {type: 'delay', data: this._data} );
+                this._clearDelay();
+    
+                if ( this._duration <= 0 ) {
+                    this._cValue = finish;
+                    this._progress = 1;
+                    this._percent = 1;
+    
+                    this.dispatch( 'tween', {target: this, currentValue: this._cValue, progress: this._progress, percent: this._percent, currentCount: this._currentCount, totalCount: this._totalCount, data: this._data} );
+                    this.dispatch( 'complete', {target: this, currentValue: this._cValue, progress: this._progress, percent: this._percent, currentCount: this._currentCount, totalCount: this._totalCount, data: this._data});
+                } else {
+                    if ( !this._interval ) this._interval = setInterval( intervalHandler, this._loopTime );
+                }
+            }, this);
+    
+            this._to = $B.bind(function () {
+                //delayComplete
+                if ( this._delayCallback ) this._delayCallback.call( this, {type: 'delay', data: this._data} );
+                this._clearDelay();
+    
+                this._currentCount = this._seekCount;
+                this._intervalHandler();
+            }, this);
+    
+            this._intervalHandler = $B.bind(function (e) {
+                this._cValue = this._ease.call( this, this._currentCount, this._begin, this._finishValue, this._totalCount );
+                this._percent = ( this._finishValue == 0 )? 1 : ( this._cValue - this._begin ) / this._finishValue;
+                this._progress = this._currentCount / this._totalCount;
+    
+                var evt = {target: this, currentValue: this._cValue, progress: this._progress, percent: this._percent, currentCount: this._currentCount, totalCount: this._totalCount, data: this._data };
+                //tween
+                this.dispatch( 'tween', evt );
+                //complete
+                if ( this._currentCount >= this._totalCount && this._seekCount == this._totalCount ) {
+                    this._timerStop();
+                    this.dispatch( 'complete', evt );
+                    if ( this._seekCom ) this.dispatch( 'seekcomplete', evt );
+                //seek
+                } else {
+                    if ( this._currentCount == this._seekCount ) {
+                        this._timerStop();
+                        if ( this._seekCom ) this.dispatch( 'complete', evt );
+                        return;
+                    }
+                    if ( this._forward != null ) this._currentCount = ( this._forward )? ++this._currentCount : --this._currentCount;
+                }
+            }, this);
+        },
+    
+        _setValue: function ( v_begin, v_finish, v_values ) {
+            this._begin = ( $B.isNumber(v_begin) )? v_begin : this._cValue;
+            if ( $B.isNumber(v_finish) ) this._finish = v_finish;
+            if ( !$B.isEmpty(v_values) ) this._data = v_values;
+    
+            this._finishValue = this._finish - this._begin;
+        },
+    
+        _timerStop: function () {
+            if ( this._interval ) {
+                clearInterval( this._interval );
+                this._interval = null;
+            }
+        },
+    
+        _reset: function () {
+            this._forward = null;
+            this._cValue = this._begin;
+            this._progress = 0;
+            this._percent = 0;
+            this._currentCount = 0;
+        },
+    
+        _setSeekValue: function ( per ) {
+            this._seekCount = Math.round( this._totalCount * per );
+    
+            if ( this._seekCount > _currentCount ) {
+                this._forward = true;
+            } else if ( this._seekCount < this._currentCount ) {
+                this._forward = false;
+            } else {
+                this._forward = null;
+            }
+        },
+    
+        _startDelay: function ( callBack, time ) {
+            if ( !this._delay ) this._delay = setTimeout( callBack, time );
+        },
+    
+        _clearDelay: function () {
+            if ( this._delay ) {
+                clearTimeout( this._delay );
+                this._delay = null;
+            }
+            this._delayTime = 0;
+            this._delayCallback = null;
+        },
+    
+        _setFPS: function ( val ) {
+            this._fps = val;
+            this._loopTime = Math.ceil( 1000 / this._fps );
+            this._totalCount = Math.ceil( (this._duration * 1000) / this._loopTime );
         }
-    };
+    }, '$B.utils.TweenCore');
 
 
     // ============================================================== //
     // =====================	TweenCSS	========================= //
     // ============================================================== //
     /**
-     * CSS기반 Tweener<br>
-     * ie7에서 동작하지 않을시 대상에 position을 설정하면 된다.<br>
+     * CSS기반 Tweener
+     * ie7에서 동작하지 않을시 대상에 position을 설정하면 된다.
+     * Event : tween, complete, seekcomplete
      * Event Property : type, target, progress=시간진행률, percent, currentCount, totalCount, data
      * @class	{TweenCSS}
      * @constructor
@@ -3785,199 +3814,49 @@
      * @param	{Number}			duration		동작되는 시간, 초
      * @param	{String}			begin_props		출발값들, null을 설정하면 대상의 스타일 속성을 검색(해당스타일 속성이 없으면 에러)
      * @param	{String}			finish_props	도착값들
-     * @param	{Object}			option			onTween: Function, onComplete: Function, onSeekComplete: Function, ease: ixBand.utils.ease 선택, 추가 하여 사용
+     * @param	{Object}			option			ease: ixBand.utils.ease 선택, 추가 하여 사용
      * @param	{Object}			data			이벤트핸들러에서 전달받을수 있다. e.data
      */
-    ixBand.utils.TweenCSS = function ( target, duration, begin_props, finish_props, option, data ) {
-        var _onTween = ( option && option.onTween )? option.onTween : null,
-            _onComplete = ( option && option.onComplete )? option.onComplete : null,
-            _onSeekComplete = (option && option.onSeekComplete)? option.onSeekComplete : null,
-            _ease = ( option && option.ease )? option.ease : null,
-            _target = $B( target ).element(),
-            _b_props = [], _f_props = [], _propLength = 0,
-            _this = this;
+    ixBand.utils.TweenCSS = $B.utils.TweenCore.extend({
+        initialize: function ( target, duration, begin_props, finish_props, option, data ) {
+            this._tweenEventPool = {};
+            this._target = $B( target ).element();
+            this._b_props = [];
+            this._f_props = [];
+            this._propLength = 0;
     
-        data = ( data || data == 0 )? data : null;
+            //스타일속성, 값, 단위 분리
+            this.addProp( begin_props, finish_props );
+            this._addEvents();
+            $B.utils.TweenCore.prototype.initialize.call( this, duration, 0, 1, option, data );
+            return this;
+        },
     
-        this._target = _target;
+        // ===============	Public Methods =============== //
     
-        //스타일속성이 있는지 체크후 index반환, 없을시 -1
-        this._propertyIndexOf = function ( propName ) {
-            var result = -1, i;
-            for ( i = 0; i < _propLength; ++i ) {
-                if ( _f_props[i].name == propName ) {
-                    result = i;
-                    break;
-                }
-            }
-            return result;
-        };
-        //스타일속성 배열에 넣기
-        this._addProperty = function ( begin_prop, finish_prop ) {
-            var findIdx = this._propertyIndexOf( finish_prop.name ),
-                styleName = $B.string.camelCase( finish_prop.name );
-    
-            begin_prop.styleName = styleName;
-            finish_prop.styleName = styleName;
-    
-            if ( findIdx == -1 ) {
-                _b_props.push( begin_prop );
-                _f_props.push( finish_prop );
+        addListener: function ( type, handler, core ) {
+            if ( core == 'core' ) {
+                $B.utils.TweenCore.prototype.addListener.call( this, type, handler );
             } else {
-                _b_props[findIdx] = begin_prop;
-                _f_props[findIdx] = finish_prop;
+                $B.utils.TweenCore.prototype.addListener.call( this, type, handler, this._tweenEventPool );
             }
-    
-            _propLength = _f_props.length;
-        };
-        //스타일속성 배열에서 삭제
-        this._removeProperty = function ( propName ) {
-            var delIdx = this._propertyIndexOf( propName );
-    
-            if ( delIdx > -1 ) {
-                _b_props.splice( delIdx, 1 );
-                _f_props.splice( delIdx, 1 );
-            }
-    
-            _propLength = _f_props.length;
-        };
-        //스타일속성, 값, 단위 분리
-        this.addProp( begin_props, finish_props );
-        //tweenCore
-        this._tweenCore = new $B.utils.TweenCore(duration, 0, 1, { onTween: tweenHandler, onComplete: tweenHandler, onSeekComplete: tweenHandler, ease: _ease }, data);
-    
-        function tweenHandler (e) {
-            var i, c_value;
-            for ( i = 0; i < _propLength; ++i ) {
-                var f_property = _f_props[i],
-                    b_property = _b_props[i],
-                    fName = f_property.name,
-                    fValue = f_property.value;
-    
-                //Color
-                if( f_property.unit == 'color' ) {
-                    c_value = $B.color.mix( b_property.value, fValue, e.percent, f_property.colorType );
-                } else {
-                    c_value = ( fValue * e.percent + b_property.value ) + f_property.unit;
-                }
-    
-                //Opacity
-                if ( fName == 'opacity' ) {
-                    $B.style.opacity( _target, fValue * e.percent + b_property.value );
-                    //ScrollTop
-                } else if ( fName == 'scrollTop' ) {
-                    $B( _target ).scrollTop( Number(c_value) );
-                    //ScrollLeft
-                } else if ( fName == 'scrollLeft' ) {
-                    $B( _target ).scrollLeft( Number(c_value) );
-                } else {
-                    _target.style[f_property.styleName] = c_value;
-                }
-            }
-    
-            var evt = { type: '', target: _this, progress: e.progress, percent: e.percent, currentCount: e.currentCount, totalCount: e.totalCount, data: e.data };
-    
-            switch ( e.type ) {
-                case 'tween':
-                    if ( _onTween ) evt.type = e.type, _onTween.call( _this, evt );
-                    break;
-                case 'complete':
-                    if ( _onComplete ) evt.type = e.type, _onComplete.call( _this, evt );
-                    break;
-                case 'seekcomplete':
-                    if ( _onSeekComplete ) evt.type = e.type, _onSeekComplete.call( _this, evt );
-                    break;
-            }
-        }
-    
-    };
-    
-    ixBand.utils.TweenCSS.prototype = {
-        /**
-         * 현재 객체의 Style Property 를 파싱해서 반환
-         * @private
-         */
-        _getTweenStyle: function ( target, propSet ) {
-            var get_prop = {},
-                cName = $B.string.camelCase( propSet.name ),
-                value, valueSet;
-    
-            get_prop.name = propSet.name;
-    
-            if ( cName == 'scrollTop' ) {
-                value = $B( target ).scrollTop();
-            } else if ( cName == 'scrollLeft' ) {
-                value = $B( target ).scrollLeft();
-            } else {
-                value = $B( target ).css( get_prop.name );
-            }
-    
-            if ( value == 'transparent' || value == 'auto' || value == undefined ) {
-                throw new Error('[ixBand] TweenCSS의 대상의 Style "' + get_prop.name + '"가 설정되어 있지않아 Tween 실행불가!');
-            }
-    
-            if ( typeof value === 'number' ) value = String(value);
-    
-            valueSet = $B.style.parseValue( value );
-            get_prop.value = valueSet.value;
-            get_prop.unit = valueSet.unit;
-    
-            return get_prop;
-        },
-    
-        /** 해당 초만큼 지연시킨후 다음 Method실행, 한명령줄에 하나의 delay만 사용한다.
-         * @param	{Number}	time		초단위, 예) 0.5초
-         * @param	{Function}	callback	delay가 끝나는 이벤트 전달
-         * @return	this
-         */
-        delay: function ( time, callback ) {
-            this._tweenCore.delay( time, callback );
             return this;
         },
-        /** 시작(리셋후)
-         * @return	this
-         */
-        start: function () {
-            this._tweenCore.start();
+    
+        removeListener: function ( type, handler ) {
+            $B.utils.TweenCore.prototype.removeListener.call( this, type, handler, this._tweenEventPool );
             return this;
         },
-        /** 정지
-         * @return	this
-         */
-        stop: function () {
-            this._tweenCore.stop();
+    
+        hasListener: function ( type, handler ) {
+            return $B.utils.TweenCore.prototype.hasListener.call( this, type, handler, this._tweenEventPool );
+        },
+    
+        dispatch: function ( type, datas ) {
+            $B.utils.TweenCore.prototype.dispatch.call( this, type, datas, this._tweenEventPool );
             return this;
         },
-        /** Stop후 0
-         * @return	this
-         */
-        reset: function () {
-            this._tweenCore.reset();
-            return this;
-        },
-        /**
-         * 해당탐색 구간으로 Tween
-         * @param	{Number}	progress 0~1
-         * @return	this
-         */
-        seek: function ( progress ) {
-            this._tweenCore.seek( progress );
-        },
-        /**
-         * 해당탐색 구간으로 즉시 이동
-         * @param	{Number}	progress 0~1
-         * @return	this
-         */
-        seekTo: function ( progress ) {
-            this._tweenCore.seekTo( progress );
-        },
-        /** progress가 0이면 1, 1이면 0으로 Tween
-         * @return	this
-         */
-        toggle: function () {
-            this._tweenCore.toggle();
-            return this;
-        },
+    
         /**
          * 스타일 속성들 추가<br>
          * 예)'width: 100px; z-index: 3;'
@@ -4029,21 +3908,120 @@
                 argNum = args.length, i;
     
             for ( i = 0; i < argNum; ++i ) {
-                this._removeProperty( args[i] );
+                var delIdx = this._propertyIndexOf( args[i] );
+    
+                if ( delIdx > -1 ) {
+                    this._b_props.splice( delIdx, 1 );
+                    this._f_props.splice( delIdx, 1 );
+                }
             }
     
+            this._propLength = this._f_props.length;
             return this;
         },
+    
+        // ===============	Private Methods =============== //
+        _addEvents: function () {
+            this._tweenHandler = $B.bind(function (e) {
+                var i, c_value;
+                for ( i = 0; i < this._propLength; ++i ) {
+                    var f_property = this._f_props[i],
+                        b_property = this._b_props[i],
+                        fName = f_property.name,
+                        fValue = f_property.value;
+    
+                    //Color
+                    if( f_property.unit == 'color' ) {
+                        c_value = $B.color.mix( b_property.value, fValue, e.percent, f_property.colorType );
+                    } else {
+                        c_value = ( fValue * e.percent + b_property.value ) + f_property.unit;
+                    }
+    
+                    //Opacity
+                    if ( fName == 'opacity' ) {
+                        $B.style.opacity( this._target, fValue * e.percent + b_property.value );
+                        //ScrollTop
+                    } else if ( fName == 'scrollTop' ) {
+                        $B( this._target ).scrollTop( Number(c_value) );
+                        //ScrollLeft
+                    } else if ( fName == 'scrollLeft' ) {
+                        $B( this._target ).scrollLeft( Number(c_value) );
+                    } else {
+                        this._target.style[f_property.styleName] = c_value;
+                    }
+                }
+    
+                this.dispatch( e.type, e );
+            }, this);
+    
+            this.addListener( 'tween', this._tweenHandler, 'core' );
+            this.addListener( 'complete', this._tweenHandler, 'core' );
+            this.addListener( 'seekcomplete', this._tweenHandler, 'core' );
+        },
+    
+        //스타일속성이 있는지 체크후 index반환, 없을시 -1
+        _propertyIndexOf: function ( propName ) {
+            var result = -1, i;
+            for ( i = 0; i < this._propLength; ++i ) {
+                if ( this._f_props[i].name == propName ) {
+                    result = i;
+                    break;
+                }
+            }
+            return result;
+        },
+    
+        //스타일속성 배열에 넣기
+        _addProperty: function ( begin_prop, finish_prop ) {
+            var findIdx = this._propertyIndexOf( finish_prop.name ),
+                styleName = $B.string.camelCase( finish_prop.name );
+    
+            begin_prop.styleName = styleName;
+            finish_prop.styleName = styleName;
+    
+            if ( findIdx == -1 ) {
+                this._b_props.push( begin_prop );
+                this._f_props.push( finish_prop );
+            } else {
+                this._b_props[findIdx] = begin_prop;
+                this._f_props[findIdx] = finish_prop;
+            }
+    
+            this._propLength = this._f_props.length;
+        },
+    
         /**
-         * FPS설정
-         * @param	{Int}	frame	기본 fps PC : 60, Mobile : 30
-         * @return	this
+         * 현재 객체의 Style Property 를 파싱해서 반환
+         * @private
          */
-        fps: function ( frame ) {
-            this._tweenCore.setFPS( frame );
-            return this;
+        _getTweenStyle: function ( target, propSet ) {
+            var get_prop = {},
+                cName = $B.string.camelCase( propSet.name ),
+                value, valueSet;
+    
+            get_prop.name = propSet.name;
+    
+            if ( cName == 'scrollTop' ) {
+                value = $B( target ).scrollTop();
+            } else if ( cName == 'scrollLeft' ) {
+                value = $B( target ).scrollLeft();
+            } else {
+                value = $B( target ).css( get_prop.name );
+            }
+    
+            if ( value == 'transparent' || value == 'auto' || value == undefined ) {
+                throw new Error('[ixBand] TweenCSS의 대상의 Style "' + get_prop.name + '"가 설정되어 있지않아 Tween 실행불가!');
+            }
+    
+            if ( typeof value === 'number' ) value = String(value);
+    
+            valueSet = $B.style.parseValue( value );
+            get_prop.value = valueSet.value;
+            get_prop.unit = valueSet.unit;
+    
+            return get_prop;
         }
-    };
+    }, '$B.utils.TweenCSS');
 
 
     // ############################################################################ //
@@ -4749,6 +4727,7 @@
             this._target = $B( target ).element();
             this._delay = 400;
             this._setEvents();
+            return this;
         },
     
         // ===============	Public Methods	=============== //
@@ -4861,6 +4840,7 @@
             this._startY = 0;
             this._moveCount = 0;
             this._setEvents();
+            return this;
         },
     
         // ===============	Public Methods	=============== //
@@ -5017,6 +4997,7 @@
     
             if ( MS_POINTER ) this._setTouchAction( 'none' );
             this._setEvents();
+            return this;
         },
     
         // ===============	Public Methods	=============== //
@@ -5733,6 +5714,7 @@
             this._tAction = ( this._aType == 'auto' )? 'none' : ( this._aType == 'horizontal' )? 'pan-y' : 'pan-x';
             this._setTouchAction( this._tAction );
             this._setEvents();
+            return this;
         },
     
         // ===============	Public Methods =============== //
@@ -5971,21 +5953,23 @@
      * @param	{Number}	tx	x축을 따라 각 점이 평행 이동할 거리.
      * @param	{Number}	ty	y축을 따라 각 점이 평행 이동할 거리.
      */
-    ixBand.geom.Matrix = function ( a, b, c, d, tx, ty ) {
-        this.a = a || 1;
-        this.b = b || 0;
-        this.u = 0;
-        this.c = c || 0;
-        this.d = d || 1;
-        this.v = 0;
-        this.tx = tx || 0;
-        this.ty = ty || 0;
-        this.w = 1;
-    };
-    
-    ixBand.geom.Matrix.prototype = {
+    ixBand.geom.Matrix = $B.Class.extend({
         //degrees to radians
         DEG_TO_RAD: Math.PI / 180,
+    
+        initialize: function ( a, b, c, d, tx, ty ) {
+            this.a = a || 1;
+            this.b = b || 0;
+            this.u = 0;
+            this.c = c || 0;
+            this.d = d || 1;
+            this.v = 0;
+            this.tx = tx || 0;
+            this.ty = ty || 0;
+            this.w = 1;
+        },
+    
+        // ===============	Public Methods =============== //
     
         /**
          * matrix를 CSS3에서 사용할 수 있도록 문자열로 반환
@@ -6091,7 +6075,7 @@
             result.y = m.b * point.x + m.d * point.y + m.ty;
             return result;
         }
-    };
+    }, '$B.geom.Matrix');
 
 
     // ============================================================== //
@@ -6102,63 +6086,64 @@
      * 4x4 변형행렬, 3D Matrix
      * @class {Matrix3D}
      */
-    ixBand.geom.Matrix3D = function ( m11, m12, m13, m14, m21, m22, m23, m24, m31, m32, m33, m34 ) {
-        /*
-         | 1 0 0 0 |	sx	m12	m13	tx |
-         | 0 1 0 0 |	m21	sy	m23	ty |
-         | 0 0 1 0 |	m31	m32	sz	tz |
-         | 0 0 0 1 |	m41	m42	m43	tw |
-         */
-        /*
-         if ( a || b || c ) {
-         this.rawData = [a, b, c, [0, 0, 0, 1]];
-         } else {
-         this.rawData = [
-         [1, 0, 0, 0],
-         [0, 1, 0, 0],
-         [0, 0, 1, 0],
-         [0, 0, 0, 1]];
-         }
-         */
-    
-        if ( m11 || m11 == 0 ) {
-            this.m11 = m11;//scaleX
-            this.m12 = m12;
-            this.m13 = m13;
-            this.m14 = m14;//tx
-            this.m21 = m21;
-            this.m22 = m22;//scaleY
-            this.m23 = m23;
-            this.m24 = m24;//ty
-            this.m31 = m31;
-            this.m32 = m32;
-            this.m33 = m33;//scaleZ
-            this.m34 = m34;//tz
-        } else {
-            this.m11 = 1;
-            this.m12 = 0;
-            this.m13 = 0;
-            this.m14 = 0;
-            this.m21 = 0;
-            this.m22 = 1;
-            this.m23 = 0;
-            this.m24 = 0;
-            this.m31 = 0;
-            this.m32 = 0;
-            this.m33 = 1;
-            this.m34 = 0;
-        }
-    
-        this.m41 = 0;
-        this.m42 = 0;
-        this.m43 = 0;
-        this.m44 = 1;//tw
-    
-    };
-    
-    ixBand.geom.Matrix3D.prototype = {
+    ixBand.geom.Matrix3D = $B.Class.extend({
         //degrees to radians
         DEG_TO_RAD: Math.PI / 180,
+    
+        initialize: function ( m11, m12, m13, m14, m21, m22, m23, m24, m31, m32, m33, m34 ) {
+            /*
+             | 1 0 0 0 |	sx	m12	m13	tx |
+             | 0 1 0 0 |	m21	sy	m23	ty |
+             | 0 0 1 0 |	m31	m32	sz	tz |
+             | 0 0 0 1 |	m41	m42	m43	tw |
+             */
+            /*
+             if ( a || b || c ) {
+             this.rawData = [a, b, c, [0, 0, 0, 1]];
+             } else {
+             this.rawData = [
+             [1, 0, 0, 0],
+             [0, 1, 0, 0],
+             [0, 0, 1, 0],
+             [0, 0, 0, 1]];
+             }
+             */
+    
+            if ( m11 || m11 == 0 ) {
+                this.m11 = m11;//scaleX
+                this.m12 = m12;
+                this.m13 = m13;
+                this.m14 = m14;//tx
+                this.m21 = m21;
+                this.m22 = m22;//scaleY
+                this.m23 = m23;
+                this.m24 = m24;//ty
+                this.m31 = m31;
+                this.m32 = m32;
+                this.m33 = m33;//scaleZ
+                this.m34 = m34;//tz
+            } else {
+                this.m11 = 1;
+                this.m12 = 0;
+                this.m13 = 0;
+                this.m14 = 0;
+                this.m21 = 0;
+                this.m22 = 1;
+                this.m23 = 0;
+                this.m24 = 0;
+                this.m31 = 0;
+                this.m32 = 0;
+                this.m33 = 1;
+                this.m34 = 0;
+            }
+    
+            this.m41 = 0;
+            this.m42 = 0;
+            this.m43 = 0;
+            this.m44 = 1;//tw
+        },
+    
+        // ===============	Public Methods =============== //
     
         //matrix3d를 CSS3에서 사용할 수 있도록 문자열로 반환
         toString: function () {
@@ -6326,7 +6311,7 @@
             result.z = m.m31 * point3D.x + m.m32 * point3D.y + m.m33 * point3D.z + m.m34;
             return result;
         }
-    };
+    }, '$B.geom.Matrix3D');
 
 
     // ############################################################################ //

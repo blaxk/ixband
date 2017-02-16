@@ -6,63 +6,64 @@
  * 4x4 변형행렬, 3D Matrix
  * @class {Matrix3D}
  */
-ixBand.geom.Matrix3D = function ( m11, m12, m13, m14, m21, m22, m23, m24, m31, m32, m33, m34 ) {
-    /*
-     | 1 0 0 0 |	sx	m12	m13	tx |
-     | 0 1 0 0 |	m21	sy	m23	ty |
-     | 0 0 1 0 |	m31	m32	sz	tz |
-     | 0 0 0 1 |	m41	m42	m43	tw |
-     */
-    /*
-     if ( a || b || c ) {
-     this.rawData = [a, b, c, [0, 0, 0, 1]];
-     } else {
-     this.rawData = [
-     [1, 0, 0, 0],
-     [0, 1, 0, 0],
-     [0, 0, 1, 0],
-     [0, 0, 0, 1]];
-     }
-     */
-
-    if ( m11 || m11 == 0 ) {
-        this.m11 = m11;//scaleX
-        this.m12 = m12;
-        this.m13 = m13;
-        this.m14 = m14;//tx
-        this.m21 = m21;
-        this.m22 = m22;//scaleY
-        this.m23 = m23;
-        this.m24 = m24;//ty
-        this.m31 = m31;
-        this.m32 = m32;
-        this.m33 = m33;//scaleZ
-        this.m34 = m34;//tz
-    } else {
-        this.m11 = 1;
-        this.m12 = 0;
-        this.m13 = 0;
-        this.m14 = 0;
-        this.m21 = 0;
-        this.m22 = 1;
-        this.m23 = 0;
-        this.m24 = 0;
-        this.m31 = 0;
-        this.m32 = 0;
-        this.m33 = 1;
-        this.m34 = 0;
-    }
-
-    this.m41 = 0;
-    this.m42 = 0;
-    this.m43 = 0;
-    this.m44 = 1;//tw
-
-};
-
-ixBand.geom.Matrix3D.prototype = {
+ixBand.geom.Matrix3D = $B.Class.extend({
     //degrees to radians
     DEG_TO_RAD: Math.PI / 180,
+
+    initialize: function ( m11, m12, m13, m14, m21, m22, m23, m24, m31, m32, m33, m34 ) {
+        /*
+         | 1 0 0 0 |	sx	m12	m13	tx |
+         | 0 1 0 0 |	m21	sy	m23	ty |
+         | 0 0 1 0 |	m31	m32	sz	tz |
+         | 0 0 0 1 |	m41	m42	m43	tw |
+         */
+        /*
+         if ( a || b || c ) {
+         this.rawData = [a, b, c, [0, 0, 0, 1]];
+         } else {
+         this.rawData = [
+         [1, 0, 0, 0],
+         [0, 1, 0, 0],
+         [0, 0, 1, 0],
+         [0, 0, 0, 1]];
+         }
+         */
+
+        if ( m11 || m11 == 0 ) {
+            this.m11 = m11;//scaleX
+            this.m12 = m12;
+            this.m13 = m13;
+            this.m14 = m14;//tx
+            this.m21 = m21;
+            this.m22 = m22;//scaleY
+            this.m23 = m23;
+            this.m24 = m24;//ty
+            this.m31 = m31;
+            this.m32 = m32;
+            this.m33 = m33;//scaleZ
+            this.m34 = m34;//tz
+        } else {
+            this.m11 = 1;
+            this.m12 = 0;
+            this.m13 = 0;
+            this.m14 = 0;
+            this.m21 = 0;
+            this.m22 = 1;
+            this.m23 = 0;
+            this.m24 = 0;
+            this.m31 = 0;
+            this.m32 = 0;
+            this.m33 = 1;
+            this.m34 = 0;
+        }
+
+        this.m41 = 0;
+        this.m42 = 0;
+        this.m43 = 0;
+        this.m44 = 1;//tw
+    },
+
+    // ===============	Public Methods =============== //
 
     //matrix3d를 CSS3에서 사용할 수 있도록 문자열로 반환
     toString: function () {
@@ -230,4 +231,4 @@ ixBand.geom.Matrix3D.prototype = {
         result.z = m.m31 * point3D.x + m.m32 * point3D.y + m.m33 * point3D.z + m.m34;
         return result;
     }
-};
+}, '$B.geom.Matrix3D');

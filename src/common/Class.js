@@ -31,7 +31,7 @@ ixBand.Class.extend = function ( methods, className ) {
     if ( typeof methods === 'object' ) {
         var Class = function () {
             if ( typeof this.initialize === 'function' ) {
-                this.initialize.apply( this, arguments );
+                return this.initialize.apply( this, arguments );
             }
         };
 

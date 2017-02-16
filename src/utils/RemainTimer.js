@@ -32,6 +32,7 @@ ixBand.utils.RemainTimer = $B.Class.extend({
                 this.dispatch( 'complete', dday );
             }
         }, this);
+        return this;
     },
 
     // ===============	Public Methods	=============== //

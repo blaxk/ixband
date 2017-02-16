@@ -35,6 +35,7 @@ ixBand.event.MultiTouch = $B.Class.extend({
 
         if ( MS_POINTER ) this._setTouchAction( 'none' );
         this._setEvents();
+        return this;
     },
 
     // ===============	Public Methods	=============== //

@@ -17,6 +17,7 @@ ixBand.event.GestureAxis = $B.Class.extend({
         this._startY = 0;
         this._moveCount = 0;
         this._setEvents();
+        return this;
     },
 
     // ===============	Public Methods	=============== //

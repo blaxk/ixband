@@ -12,11 +12,13 @@ CustomEvents.prototype = {
     /**
      * @param {String}    type      event type
      * @param {Function}  callback
+     * @param {Object}    eventPool 대체할 eventPool, 상속 관계에서 별도의 eventPool을 지정할때 사용한다.
      */
-    addListener: function ( type, callback ) {
+    addListener: function ( type, callback, eventPool ) {
         if ( typeof type === 'string' && typeof callback === 'function' && !this.hasListener(type, callback) ) {
-            var events = this.__eventPool__[type];
-            if ( !events ) events = this.__eventPool__[type] = [];
+            var evtPool = $B.isObject( eventPool ) || this.__eventPool__,
+                events = evtPool[type];
+            if ( !events ) events = evtPool[type] = [];
             events.push( callback );
         }
 
@@ -26,9 +28,11 @@ CustomEvents.prototype = {
     /**
      * @param {String}    type      event type
      * @param {Function}  callback
+     * @param {Object}    eventPool 대체할 eventPool, 상속 관계에서 별도의 eventPool을 지정할때 사용한다.
      */
-    removeListener: function ( type, callback ) {
-        var events = this.__eventPool__[type];
+    removeListener: function ( type, callback, eventPool ) {
+        var evtPool = $B.isObject( eventPool ) || this.__eventPool__,
+            events = evtPool[type];
 
         if ( events ) {
             if ( typeof callback === 'function' ) {
@@ -40,9 +44,9 @@ CustomEvents.prototype = {
                     }
                 }
             } else if ( type ) {
-                delete this.__eventPool__[type];
+                delete evtPool[type];
             } else {
-                this.__eventPool__ = {};
+                evtPool = {};
             }
         }
 
@@ -52,11 +56,13 @@ CustomEvents.prototype = {
     /**
      * @param   {String}    type      event type
      * @param   {Function}
+     * @param   {Object}    eventPool 대체할 eventPool, 상속 관계에서 별도의 eventPool을 지정할때 사용한다.
      * @return  {Boolean}
      */
-    hasListener: function ( type, callback ) {
+    hasListener: function ( type, callback, eventPool ) {
         var result = false,
-            events = this.__eventPool__[type];
+            evtPool = $B.isObject( eventPool ) || this.__eventPool__,
+            events = evtPool[type];
 
         if ( events ) {
             if ( typeof callback === 'function' ) {
@@ -78,10 +84,12 @@ CustomEvents.prototype = {
     /**
      * @param {String}  type     event type
      * @param {Object}  datas
+     * @param {Object}  eventPool 대체할 eventPool, 상속 관계에서 별도의 eventPool을 지정할때 사용한다.
      */
-    dispatch: function ( type, datas ) {
+    dispatch: function ( type, datas, eventPool ) {
         var _this = this,
-            events = this.__eventPool__[type];
+            evtPool = $B.isObject( eventPool ) || this.__eventPool__,
+            events = evtPool[type];
 
         if ( events ) {
             var evtLength = events.length;

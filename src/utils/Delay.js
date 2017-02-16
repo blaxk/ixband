@@ -7,12 +7,14 @@
  * @class	{Delay}
  * @constructor
  */
-ixBand.utils.Delay = function () {
-    this._delays = {};
-    this._count = 0;
-};
+ixBand.utils.Delay = $B.Class.extend({
+    initialize: function () {
+        this._delays = {};
+        this._count = 0;
+        return this;
+    },
 
-ixBand.utils.Delay.prototype = {
+    // ===============	Public Methods =============== //
     /**
      * Delay 시작, 고유 아이디 반환
      * @param	{Number}		delay		1000/1초
@@ -50,4 +52,4 @@ ixBand.utils.Delay.prototype = {
         }
         return this;
     }
-};
+}, '$B.utils.Delay');

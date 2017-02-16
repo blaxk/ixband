@@ -2,141 +2,52 @@
 // =====================	TweenCore	========================= //
 // ============================================================== //
 /**
- * TweenCore<br>
+ * TweenCore
+ * Event : tween, complete, seekcomplete
  * Event Property : type, target, currentValue, progress=시간진행률, percent, currentCount, totalCount, data
  * @class	{TweenCore}
  * @constructor
  * @param	{Number}		duration	동작되는 시간, 초
  * @param	{Number}		begin		출발값
  * @param	{Number}		finish		도착값
- * @param	{Object}		option		onTween: Function, onComplete: Function, onSeekComplete: Function, ease: ixBand.utils.ease 선택, 추가 하여 사용
+ * @param	{Object}		option		ease: ixBand.utils.ease 선택, 추가 하여 사용
  * @param	{Object}		data		이벤트핸들러에서 전달받을수 있다. e.data
  */
-ixBand.utils.TweenCore = function ( duration, begin, finish, option, data ) {
-    var _ease = ( option && option.ease )? option.ease : $B.utils.ease.quadOut,
-        _onTween = ( option && option.onTween )? option.onTween : null,
-        _onComplete = ( option && option.onComplete )? option.onComplete : null,
-        _onSeekComplete = ( option && option.onSeekComplete )? option.onSeekComplete : null,
-        _finishValue = 0, _cValue = 0, _fps = 0, _loopTime = 0, _currentCount = 0, _interval = null,
-        _progress = 0, _percent = 0, _totalCount = 0, _seekCount = 0, _forward = null, _delay = null, _this = this;
+ixBand.utils.TweenCore = $B.Class.extend({
+    initialize: function ( duration, begin, finish, option, data ) {
+        this._duration = duration;
+        this._begin = begin;
+        this._finish = finish;
+        this._option = option || {};
+        this._ease = this._option || $B.utils.ease.quadOut;
+        this._data = ( $B.isEmpty(data) )? null : data;
 
-    data = ( data || data == 0 )? data : null;
+        this._finishValue = 0;
+        this._cValue = 0;
+        this._fps = 0;
+        this._loopTime = 0;
+        this._currentCount = 0;
+        this._interval = null;
+        this._progress = 0;
+        this._percent = 0;
+        this._totalCount = 0;
+        this._seekCount = 0;
+        this._forward = null;
+        this._delay = null;
 
-    this._delayTime = 0;
-    this._delayCallback = null;
-    this._seekCom = false;//true면 seekcomplete 발생
+        this._delayTime = 0;
+        this._delayCallback = null;
+        this._seekCom = false;//true면 seekcomplete 발생
 
-    this._setValue = function ( v_begin, v_finish, v_values ) {
-        begin = ( typeof v_begin === 'number' )? v_begin : _cValue;
-        if ( typeof v_finish === 'number' ) finish = v_finish;
-        if ( v_values || v_values == 0 ) data = v_values;
+        this._setValue( this._begin, this._finish );
+        //기본 fps PC : 60, Mobile : 30
+        this._setFPS( ($B.ua.MOBILE_IOS || $B.ua.ANDROID) ? 30 : 60 );
+        this._setEventsHandler();
+        return this;
+    },
 
-        _finishValue = finish - begin;
-    };
+    // ===============	Public Methods =============== //
 
-    this._setValue( begin, finish );
-
-    this._timerStart = function () {
-        //delayComplete
-        if ( _this._delayCallback ) _this._delayCallback.call( _this, {type: 'delay', data: data} );
-        _this._clearDelay();
-
-        if (duration <= 0) {
-            _cValue = finish;
-            _progress = 1;
-            _percent = 1;
-            if ( _onTween ) _onTween.call(_this, { type: 'tween', target: _this, currentValue: _cValue, progress: _progress, percent: _percent, currentCount: _currentCount, totalCount: _totalCount, data: data });
-            if ( _onComplete ) _onComplete.call(_this, { type: 'complete', target: _this, currentValue: _cValue, progress: _progress, percent: _percent, currentCount: _currentCount, totalCount: _totalCount, data: data });
-        } else {
-            if ( !_interval ) _interval = setInterval( intervalHandler, _loopTime );
-        }
-    };
-    this._timerStop = function () {
-        if ( _interval ) {
-            clearInterval( _interval );
-            _interval = null;
-        }
-    };
-    this._to = function () {
-        //delayComplete
-        if ( _this._delayCallback ) _this._delayCallback.call( _this, {type: 'delay', data: data} );
-        _this._clearDelay();
-
-        _currentCount = _seekCount;
-        intervalHandler();
-    };
-    this._reset = function () {
-        _forward = null;
-        _cValue = begin;
-        _progress = 0;
-        _percent = 0;
-        _currentCount = 0;
-    };
-    this._setSeekValue = function ( per ) {
-        _seekCount = Math.round( _totalCount * per );
-
-        if ( _seekCount > _currentCount ) {
-            _forward = true;
-        } else if ( _seekCount < _currentCount ) {
-            _forward = false;
-        } else {
-            _forward = null;
-        }
-    };
-    this._startDelay = function ( callBack, time ) {
-        if ( !_delay ) _delay = setTimeout( callBack, time );
-    };
-    this._clearDelay = function () {
-        if ( _delay ) {
-            clearTimeout( _delay );
-            _delay = null;
-        }
-        _this._delayTime = 0;
-        _this._delayCallback = null;
-    };
-    this._setFPS = function ( val ) {
-        _fps = val;
-        _loopTime = Math.ceil( 1000 / _fps );
-        _totalCount = Math.ceil( (duration * 1000) / _loopTime );
-    };
-    this._getForward = function () {
-        return _forward;
-    };
-    this._getProgress = function () {
-        return _progress;
-    };
-    //기본 fps PC : 60, Mobile : 30
-    this._setFPS( $B.ua.MOBILE_IOS || $B.ua.ANDROID ? 30 : 60 );
-
-    function intervalHandler (e) {
-        _cValue = _ease.call( _this, _currentCount, begin, _finishValue, _totalCount );
-        _percent = ( _finishValue == 0 )? 1 : ( _cValue - begin ) / _finishValue;
-        _progress = _currentCount / _totalCount;
-
-        var evt = { type: '', target: _this, currentValue: _cValue, progress: _progress, percent: _percent, currentCount: _currentCount, totalCount: _totalCount, data: data };
-        //tween
-        if ( _onTween ) evt.type = 'tween', _onTween.call( _this, evt );
-        //complete
-        if ( _currentCount >= _totalCount && _seekCount == _totalCount ) {
-            _this._timerStop();
-
-            if ( _onComplete ) evt.type = 'complete', _onComplete.call( _this, evt );
-            if ( _onSeekComplete && _this._seekCom ) evt.type = 'seekcomplete', _onSeekComplete.call( _this, evt );
-            return;
-            //seek
-        } else {
-            if ( _currentCount == _seekCount ) {
-                _this._timerStop();
-                if ( _onSeekComplete && _this._seekCom ) evt.type = 'seekcomplete', _onSeekComplete.call( _this, evt );
-                return;
-            }
-            if ( _forward != null ) _currentCount = ( _forward )? ++_currentCount : --_currentCount;
-        }
-
-    }
-};
-
-ixBand.utils.TweenCore.prototype = {
     /** 해당 초만큼 지연시킨후 다음 Method실행, 한명령줄에 하나의 delay만 사용한다.
      * @param	{Number}	time		초단위, 예) 0.5초
      * @param	{Function}	callback	delay가 끝나는 이벤트 전달
@@ -222,14 +133,12 @@ ixBand.utils.TweenCore.prototype = {
      * @return	this
      */
     toggle: function () {
-        var forword = this._getForward(),
-            progress = this._getProgress(),
-            per = 0;
+        var per = 0;
 
-        if ( forword == null ) {
-            per = ( progress == 0 )? 1 : 0;
+        if ( this._forward == null ) {
+            per = ( this._progress == 0 )? 1 : 0;
         } else {
-            per = ( forword )? 0 : 1;
+            per = ( this._forward )? 0 : 1;
         }
 
         this.seek( per );
@@ -254,5 +163,112 @@ ixBand.utils.TweenCore.prototype = {
     fps: function ( frame ) {
         this._setFPS( frame );
         return this;
+    },
+
+    // ===============	Private Methods =============== //
+    _setEventsHandler: function () {
+        this._timerStart = $B.bind(function () {
+            //delayComplete
+            if ( this._delayCallback ) this._delayCallback.call( this, {type: 'delay', data: this._data} );
+            this._clearDelay();
+
+            if ( this._duration <= 0 ) {
+                this._cValue = finish;
+                this._progress = 1;
+                this._percent = 1;
+
+                this.dispatch( 'tween', {target: this, currentValue: this._cValue, progress: this._progress, percent: this._percent, currentCount: this._currentCount, totalCount: this._totalCount, data: this._data} );
+                this.dispatch( 'complete', {target: this, currentValue: this._cValue, progress: this._progress, percent: this._percent, currentCount: this._currentCount, totalCount: this._totalCount, data: this._data});
+            } else {
+                if ( !this._interval ) this._interval = setInterval( intervalHandler, this._loopTime );
+            }
+        }, this);
+
+        this._to = $B.bind(function () {
+            //delayComplete
+            if ( this._delayCallback ) this._delayCallback.call( this, {type: 'delay', data: this._data} );
+            this._clearDelay();
+
+            this._currentCount = this._seekCount;
+            this._intervalHandler();
+        }, this);
+
+        this._intervalHandler = $B.bind(function (e) {
+            this._cValue = this._ease.call( this, this._currentCount, this._begin, this._finishValue, this._totalCount );
+            this._percent = ( this._finishValue == 0 )? 1 : ( this._cValue - this._begin ) / this._finishValue;
+            this._progress = this._currentCount / this._totalCount;
+
+            var evt = {target: this, currentValue: this._cValue, progress: this._progress, percent: this._percent, currentCount: this._currentCount, totalCount: this._totalCount, data: this._data };
+            //tween
+            this.dispatch( 'tween', evt );
+            //complete
+            if ( this._currentCount >= this._totalCount && this._seekCount == this._totalCount ) {
+                this._timerStop();
+                this.dispatch( 'complete', evt );
+                if ( this._seekCom ) this.dispatch( 'seekcomplete', evt );
+            //seek
+            } else {
+                if ( this._currentCount == this._seekCount ) {
+                    this._timerStop();
+                    if ( this._seekCom ) this.dispatch( 'complete', evt );
+                    return;
+                }
+                if ( this._forward != null ) this._currentCount = ( this._forward )? ++this._currentCount : --this._currentCount;
+            }
+        }, this);
+    },
+
+    _setValue: function ( v_begin, v_finish, v_values ) {
+        this._begin = ( $B.isNumber(v_begin) )? v_begin : this._cValue;
+        if ( $B.isNumber(v_finish) ) this._finish = v_finish;
+        if ( !$B.isEmpty(v_values) ) this._data = v_values;
+
+        this._finishValue = this._finish - this._begin;
+    },
+
+    _timerStop: function () {
+        if ( this._interval ) {
+            clearInterval( this._interval );
+            this._interval = null;
+        }
+    },
+
+    _reset: function () {
+        this._forward = null;
+        this._cValue = this._begin;
+        this._progress = 0;
+        this._percent = 0;
+        this._currentCount = 0;
+    },
+
+    _setSeekValue: function ( per ) {
+        this._seekCount = Math.round( this._totalCount * per );
+
+        if ( this._seekCount > _currentCount ) {
+            this._forward = true;
+        } else if ( this._seekCount < this._currentCount ) {
+            this._forward = false;
+        } else {
+            this._forward = null;
+        }
+    },
+
+    _startDelay: function ( callBack, time ) {
+        if ( !this._delay ) this._delay = setTimeout( callBack, time );
+    },
+
+    _clearDelay: function () {
+        if ( this._delay ) {
+            clearTimeout( this._delay );
+            this._delay = null;
+        }
+        this._delayTime = 0;
+        this._delayCallback = null;
+    },
+
+    _setFPS: function ( val ) {
+        this._fps = val;
+        this._loopTime = Math.ceil( 1000 / this._fps );
+        this._totalCount = Math.ceil( (this._duration * 1000) / this._loopTime );
     }
-};
+}, '$B.utils.TweenCore');

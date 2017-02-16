@@ -45,6 +45,7 @@ ixBand.event.Swipe = $B.Class.extend({
         this._tAction = ( this._aType == 'auto' )? 'none' : ( this._aType == 'horizontal' )? 'pan-y' : 'pan-x';
         this._setTouchAction( this._tAction );
         this._setEvents();
+        return this;
     },
 
     // ===============	Public Methods =============== //

@@ -21,6 +21,7 @@ ixBand.utils.Timer = $B.Class.extend({
         this._count = 0;
 
         this._setEvents();
+        return this;
     },
 
     // ===============	Public Methods	=============== //

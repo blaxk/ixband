@@ -13,21 +13,23 @@
  * @param	{Number}	tx	x축을 따라 각 점이 평행 이동할 거리.
  * @param	{Number}	ty	y축을 따라 각 점이 평행 이동할 거리.
  */
-ixBand.geom.Matrix = function ( a, b, c, d, tx, ty ) {
-    this.a = a || 1;
-    this.b = b || 0;
-    this.u = 0;
-    this.c = c || 0;
-    this.d = d || 1;
-    this.v = 0;
-    this.tx = tx || 0;
-    this.ty = ty || 0;
-    this.w = 1;
-};
-
-ixBand.geom.Matrix.prototype = {
+ixBand.geom.Matrix = $B.Class.extend({
     //degrees to radians
     DEG_TO_RAD: Math.PI / 180,
+
+    initialize: function ( a, b, c, d, tx, ty ) {
+        this.a = a || 1;
+        this.b = b || 0;
+        this.u = 0;
+        this.c = c || 0;
+        this.d = d || 1;
+        this.v = 0;
+        this.tx = tx || 0;
+        this.ty = ty || 0;
+        this.w = 1;
+    },
+
+    // ===============	Public Methods =============== //
 
     /**
      * matrix를 CSS3에서 사용할 수 있도록 문자열로 반환
@@ -133,4 +135,4 @@ ixBand.geom.Matrix.prototype = {
         result.y = m.b * point.x + m.d * point.y + m.ty;
         return result;
     }
-};
+}, '$B.geom.Matrix');
