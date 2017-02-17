@@ -238,10 +238,10 @@ ixBand.string = {
     },
 
     /**
-     * 16자의 문자열을 random하게 반환 한다. (해당 화면에서 절대 유일값, alphabet + int 조합)
+     * 16자의 고유 문자열 반환. (해당 화면에서 절대 유일값, alphabet + int 조합)
      * @return	{String}
      */
-    random: function () {
+    unique: function () {
         var random = Math.random(),
             randomStr = random.toString( 32 ).substr( 2 ),
             alphabet = Math.round( Math.random() * 21 + 10 ).toString( 32 );//a~v

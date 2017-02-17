@@ -7,95 +7,19 @@
  * @constructor
  * @param	{Element || Selector || jQuery}	target		이벤트 발생 대상
  */
-ixBand.event.TouchEvent = function ( target ) {
-    var _this = this,
-        POINTER_TYPES = ['', '', 'touch', 'pen', 'mouse'];
+ixBand.event.TouchEvent = $B.Class.extend({
+    POINTER_TYPES: ['', '', 'touch', 'pen', 'mouse'],
 
-    this._eventPool = {};
-    this._target = $B( target ).element();
-    this._eventId = 0;
-    this._touches = {};
-    this._isEndEvent = false;
+    initialize: function ( target ) {
+        this._target = $B( target ).element();
+        this._touches = {};
+        this._isEndEvent = false;
 
-    this._addTouch = function ( event ) {
-        //if ( event.pointerType == 'mouse' || event.pointerType == 4 ) return;
+        this._setEvents();
+    },
 
-        this._touches[event.pointerId] = {
-            target: event.target,
-            clientX: event.clientX,
-            clientY: event.clientY,
-            pageX: event.pageX,
-            pageY: event.pageY,
-            screenX: event.screenX,
-            screenY: event.screenY,
-            pointerType: this._getPointerType( event ) //IE only
-        };
-    };
+    // ===============	Public Methods =============== //
 
-    this._removeTouch = function ( event ) {
-        delete this._touches[event.pointerId];
-    };
-
-    this._getPointerType = function ( event ) {
-        var result = 'touch', pointerType = event.pointerType;
-
-        if ( typeof pointerType === 'string' ) {
-            result = pointerType;
-        } else if ( typeof pointerType === 'number' && pointerType > -1 && pointerType < 5 ) {
-            result = POINTER_TYPES[pointerType];
-        }
-
-        return result;
-    };
-
-    //크로스브라우징 TouchEvent Touches 반환
-    this._getTouches = function ( event ) {
-        var touches;
-
-        if ( MS_POINTER ) {
-            touches = [];
-            for ( var n in this._touches ) {
-                touches.push(this._touches[n]);
-            }
-        } else {
-            touches = event.touches;
-        }
-
-        return touches;
-    };
-
-    //크로스브라우징 이벤트 타입 반환
-    this._getCrossType = function ( type ) {
-        var crossType = CrossTouchEvent[type];
-        return crossType || type;
-    };
-
-    //origin event type to cross event type
-    this._originToCrossType = function ( type ) {
-        if ( /pointerdown/i.test(type) ) {
-            type = 'touchstart';
-        } else if ( /pointermove/i.test(type) ) {
-            type = 'touchmove';
-        } else if ( /pointerup/i.test(type) ) {
-            type = 'touchend';
-        } else if ( /pointercancel/i.test(type) ) {
-            type = 'touchcancel';
-        }
-
-        return type;
-    };
-
-    this._removeEvent = function ( id, evtObj, useCapture ) {
-        this._target.removeEventListener( this._getCrossType(evtObj.type), evtObj.wrapHandler, useCapture || evtObj.useCapture );
-        delete this._eventPool[id];
-    };
-
-    this._touchHandler = function (e) {
-        _this._removeTouch(e);
-    };
-};
-
-ixBand.event.TouchEvent.prototype = {
     /**
      * 이벤트 등록
      * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
@@ -110,8 +34,6 @@ ixBand.event.TouchEvent.prototype = {
 
             if ( this.hasListener(type, handler, useCapture) ) return this;
 
-            var _this = this;
-
             if ( MS_POINTER && !this._isEndEvent ) {
                 document.addEventListener( this._getCrossType('touchend'), this._touchHandler, false );
                 document.addEventListener( this._getCrossType('touchcancel'), this._touchHandler, false );
@@ -119,12 +41,12 @@ ixBand.event.TouchEvent.prototype = {
             }
 
             //중첩된 함수를 정의하고 이 함수를 handler 함수 대신 등록한다.
-            var wrapHandler = function (e) {
-                var crossType = _this._originToCrossType( e.type );
+            var wrapHandler = $B.bind(function (e) {
+                var crossType = this._originToCrossType( e.type );
 
                 if ( MS_POINTER ) {
                     if ( crossType === 'touchstart' || crossType === 'touchmove' ) {
-                        _this._addTouch(e);
+                        this._addTouch(e);
                     }
                 }
 
@@ -141,26 +63,25 @@ ixBand.event.TouchEvent.prototype = {
                     //이벤트 관리 함수
                     stopPropagation: function () { if (this._event) this._event.stopPropagation(); },
                     preventDefault: function () { if (this._event) this._event.preventDefault(); },
-                    touches: _this._getTouches(e)
+                    touches: this._getTouches(e)
                 };
 
                 if ( MS_POINTER ) {
                     if ( crossType === 'touchend' || crossType === 'touchcancel' ) {
-                        _this._removeTouch(e);
+                        this._removeTouch(e);
                     }
                 }
 
-                handler.call( _this, evt );
+                this.dispatch( evt.type, evt );
+            }, this);
+
+            var evtData = {
+                useCapture: useCapture || false,
+                wrapHandler: wrapHandler
             };
 
-            this._target.addEventListener( _this._getCrossType(type), wrapHandler, useCapture || false );
-
-            this._eventPool[_this._eventId++] = {
-                type: type,
-                handler: handler,
-                wrapHandler: wrapHandler,
-                useCapture: useCapture
-            };
+            $B.Class.prototype.addListener.call( this, type, handler, evtData );
+            this._target.addEventListener( this._getCrossType(type), wrapHandler, evtData.useCapture );
         }
         return this;
     },
@@ -173,32 +94,33 @@ ixBand.event.TouchEvent.prototype = {
      * @return	{TouchEvent}
      */
     removeListener: function ( type, handler, useCapture ) {
-        if ( type && handler && useCapture ) {
-            for ( var n in this._eventPool ) {
-                var event = this._eventPool[n];
+        var events = this.__eventPool__[type];
 
-                if ( event.type === type && event.handler === handler && $B.isEqual(event.useCapture, useCapture) ) {
-                    console.log( '-basic_remove:', type );
-                    this._removeEvent( n, event, useCapture );
-                }
-            }
-        } else if ( type && handler ) {
-            for ( var n in this._eventPool ) {
-                var event = this._eventPool[n];
+        if ( events ) {
+            if ( typeof handler === 'function' ) {
+                var evtLength = events.length, i;
 
-                if ( event.type === type && event.handler === handler ) {
-                    this._removeEvent( n, event );
+                if ( !$B.isEmpty(data) ) {
+                    for ( i = 0; i < evtLength; ++i ) {
+                        var eData = events[i];
+                        if ( handler === eData.handler && $B.isEqual(eData.data.useCapture, useCapture) ) {
+                            this._target.removeEventListener( this._getCrossType(type), eData.data.wrapHandler, eData.data.useCapture );
+                            events.splice( i, 1 );
+                        }
+                    }
+                } else {
+                    for ( i = 0; i < evtLength; ++i ) {
+                        if ( handler === events[i].handler ) {
+                            this._target.removeEventListener( this._getCrossType(type), eData.data.wrapHandler, false );
+                            events.splice( i, 1 );
+                        }
+                    }
                 }
-            }
-        } else if ( type ) {
-            for ( var n in this._eventPool ) {
-                var event = this._eventPool[n];
-                if ( event.type === type ) this._removeEvent( n, event );
+            } else {
+                delete this.__eventPool__[type];
             }
         } else {
-            for ( var n in this._eventPool ) {
-                this._removeEvent( n, this._eventPool[n] );
-            }
+            this.__eventPool__ = {};
         }
         return this;
     },
@@ -211,15 +133,35 @@ ixBand.event.TouchEvent.prototype = {
      * @return	{Boolean}
      */
     hasListener: function ( type, handler, useCapture ) {
-        for ( var n in this._eventPool ) {
-            var event = this._eventPool[n];
+        var result = false,
+            events = this.__eventPool__[type];
 
-            if ( event.type === type && event.handler === handler && $B.isEqual(event.useCapture, useCapture) ) {
-                return true;
-                break;
+        if ( events ) {
+            if ( typeof handler === 'function' ) {
+                var evtLength = events.length, i;
+
+                if ( !$B.isEmpty(useCapture) ) {
+                    for ( i = 0; i < evtLength; ++i ) {
+                        var eData = events[i];
+                        if ( handler === eData.handler && $B.isEqual(eData.data.useCapture, useCapture) ) {
+                            result = true;
+                            break;
+                        }
+                    }
+                } else {
+                    for ( i = 0; i < evtLength; ++i ) {
+                        if ( handler === events[i].handler ) {
+                            result = true;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                result = true;
             }
         }
-        return false;
+
+        return result;
     },
 
     /**
@@ -236,5 +178,81 @@ ixBand.event.TouchEvent.prototype = {
         }
 
         return this;
+    },
+
+    // ===============	Private Methods =============== //
+
+    _setEvents: function () {
+        this._touchHandler = $B.bind(function (e) {
+            this._removeTouch(e);
+        }, this);
+    },
+
+    _addTouch: function ( event ) {
+        //if ( event.pointerType == 'mouse' || event.pointerType == 4 ) return;
+
+        this._touches[event.pointerId] = {
+            target: event.target,
+            clientX: event.clientX,
+            clientY: event.clientY,
+            pageX: event.pageX,
+            pageY: event.pageY,
+            screenX: event.screenX,
+            screenY: event.screenY,
+            pointerType: this._getPointerType( event ) //IE only
+        };
+    },
+
+    _removeTouch: function ( event ) {
+        delete this._touches[event.pointerId];
+    },
+
+    _getPointerType: function ( event ) {
+        var result = 'touch', pointerType = event.pointerType;
+
+        if ( typeof pointerType === 'string' ) {
+            result = pointerType;
+        } else if ( typeof pointerType === 'number' && pointerType > -1 && pointerType < 5 ) {
+            result = POINTER_TYPES[pointerType];
+        }
+
+        return result;
+    },
+
+    //크로스브라우징 TouchEvent Touches 반환
+    _getTouches: function ( event ) {
+        var touches;
+
+        if ( MS_POINTER ) {
+            touches = [];
+            for ( var n in this._touches ) {
+                touches.push(this._touches[n]);
+            }
+        } else {
+            touches = event.touches;
+        }
+
+        return touches;
+    },
+
+    //크로스브라우징 이벤트 타입 반환
+    _getCrossType: function ( type ) {
+        var crossType = CrossTouchEvent[type];
+        return crossType || type;
+    },
+
+    //origin event type to cross event type
+    _originToCrossType: function ( type ) {
+        if ( /pointerdown/i.test(type) ) {
+            type = 'touchstart';
+        } else if ( /pointermove/i.test(type) ) {
+            type = 'touchmove';
+        } else if ( /pointerup/i.test(type) ) {
+            type = 'touchend';
+        } else if ( /pointercancel/i.test(type) ) {
+            type = 'touchcancel';
+        }
+
+        return type;
     }
-};
+}, '$B.event.TouchEvent');

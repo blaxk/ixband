@@ -19,7 +19,7 @@ ixBand.utils.TweenCore = $B.Class.extend({
         this._begin = begin;
         this._finish = finish;
         this._option = option || {};
-        this._ease = this._option || $B.utils.ease.quadOut;
+        this._ease = this._option.ease || $B.utils.ease.quadOut;
         this._data = ( $B.isEmpty(data) )? null : data;
 
         this._finishValue = 0;
@@ -158,11 +158,15 @@ ixBand.utils.TweenCore = $B.Class.extend({
     /**
      * FPS설정
      * @param	{Int}	frame	기본 fps PC : 60, Mobile : 30
-     * @return	this
+     * @return	{Int, this}
      */
     fps: function ( frame ) {
-        this._setFPS( frame );
-        return this;
+        if ( $B.isNumber(frame) ) {
+            this._setFPS( frame );
+            return this;
+        } else {
+            return this._fps;
+        }
     },
 
     // ===============	Private Methods =============== //
@@ -180,7 +184,7 @@ ixBand.utils.TweenCore = $B.Class.extend({
                 this.dispatch( 'tween', {target: this, currentValue: this._cValue, progress: this._progress, percent: this._percent, currentCount: this._currentCount, totalCount: this._totalCount, data: this._data} );
                 this.dispatch( 'complete', {target: this, currentValue: this._cValue, progress: this._progress, percent: this._percent, currentCount: this._currentCount, totalCount: this._totalCount, data: this._data});
             } else {
-                if ( !this._interval ) this._interval = setInterval( intervalHandler, this._loopTime );
+                if ( !this._interval ) this._interval = setInterval( this._intervalHandler, this._loopTime );
             }
         }, this);
 
@@ -244,7 +248,7 @@ ixBand.utils.TweenCore = $B.Class.extend({
     _setSeekValue: function ( per ) {
         this._seekCount = Math.round( this._totalCount * per );
 
-        if ( this._seekCount > _currentCount ) {
+        if ( this._seekCount > this._currentCount ) {
             this._forward = true;
         } else if ( this._seekCount < this._currentCount ) {
             this._forward = false;

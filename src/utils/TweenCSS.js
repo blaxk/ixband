@@ -15,10 +15,13 @@
  * @param	{Object}			option			ease: ixBand.utils.ease 선택, 추가 하여 사용
  * @param	{Object}			data			이벤트핸들러에서 전달받을수 있다. e.data
  */
-ixBand.utils.TweenCSS = $B.utils.TweenCore.extend({
+ixBand.utils.TweenCSS = $B.Class.extend({
     initialize: function ( target, duration, begin_props, finish_props, option, data ) {
-        this._tweenEventPool = {};
         this._target = $B( target ).element();
+        this._duration = duration;
+        this._option = option;
+        this._data = data;
+
         this._b_props = [];
         this._f_props = [];
         this._propLength = 0;
@@ -26,33 +29,79 @@ ixBand.utils.TweenCSS = $B.utils.TweenCore.extend({
         //스타일속성, 값, 단위 분리
         this.addProp( begin_props, finish_props );
         this._addEvents();
-        $B.utils.TweenCore.prototype.initialize.call( this, duration, 0, 1, option, data );
         return this;
     },
 
     // ===============	Public Methods =============== //
 
-    addListener: function ( type, handler, core ) {
-        if ( core == 'core' ) {
-            $B.utils.TweenCore.prototype.addListener.call( this, type, handler );
+    /** 해당 초만큼 지연시킨후 다음 Method실행, 한명령줄에 하나의 delay만 사용한다.
+     * @param	{Number}	time		초단위, 예) 0.5초
+     * @param	{Function}	callback	delay가 끝나는 이벤트 전달
+     * @return	this
+     */
+    delay: function ( time, callback ) {
+        this._tweenCore.delay( time, callback );
+        return this;
+    },
+    /** 시작(리셋후)
+     * @return	this
+     */
+    start: function () {
+        this._tweenCore.start();
+        return this;
+    },
+    /** 정지
+     * @return	this
+     */
+    stop: function () {
+        this._tweenCore.stop();
+        return this;
+    },
+    /** Stop후 0
+     * @return	this
+     */
+    reset: function () {
+        this._tweenCore.reset();
+        return this;
+    },
+    /**
+     * 해당탐색 구간으로 Tween
+     * @param	{Number}	progress 0~1
+     * @return	this
+     */
+    seek: function ( progress ) {
+        this._tweenCore.seek( progress );
+        return this;
+    },
+    /**
+     * 해당탐색 구간으로 즉시 이동
+     * @param	{Number}	progress 0~1
+     * @return	this
+     */
+    seekTo: function ( progress ) {
+        this._tweenCore.seekTo( progress );
+        return this;
+    },
+    /** progress가 0이면 1, 1이면 0으로 Tween
+     * @return	this
+     */
+    toggle: function () {
+        this._tweenCore.toggle();
+        return this;
+    },
+
+    /**
+     * FPS설정
+     * @param	{Int}	frame	기본 fps PC : 60, Mobile : 30
+     * @return	{Int, this}
+     */
+    fps: function ( frame ) {
+        if ( $B.isNumber(frame) ) {
+            this._tweenCore.fps( frame );
+            return this;
         } else {
-            $B.utils.TweenCore.prototype.addListener.call( this, type, handler, this._tweenEventPool );
+            return this._tweenCore.fps();
         }
-        return this;
-    },
-
-    removeListener: function ( type, handler ) {
-        $B.utils.TweenCore.prototype.removeListener.call( this, type, handler, this._tweenEventPool );
-        return this;
-    },
-
-    hasListener: function ( type, handler ) {
-        return $B.utils.TweenCore.prototype.hasListener.call( this, type, handler, this._tweenEventPool );
-    },
-
-    dispatch: function ( type, datas ) {
-        $B.utils.TweenCore.prototype.dispatch.call( this, type, datas, this._tweenEventPool );
-        return this;
     },
 
     /**
@@ -152,9 +201,10 @@ ixBand.utils.TweenCSS = $B.utils.TweenCore.extend({
             this.dispatch( e.type, e );
         }, this);
 
-        this.addListener( 'tween', this._tweenHandler, 'core' );
-        this.addListener( 'complete', this._tweenHandler, 'core' );
-        this.addListener( 'seekcomplete', this._tweenHandler, 'core' );
+        this._tweenCore = new $B.utils.TweenCore( this._duration, 0, 1, this._option, this._data )
+                .addListener( 'tween', this._tweenHandler )
+                .addListener( 'complete', this._tweenHandler )
+                .addListener( 'seekcomplete', this._tweenHandler );
     },
 
     //스타일속성이 있는지 체크후 index반환, 없을시 -1
@@ -208,7 +258,7 @@ ixBand.utils.TweenCSS = $B.utils.TweenCore.extend({
         }
 
         if ( value == 'transparent' || value == 'auto' || value == undefined ) {
-            throw new Error('[ixBand] TweenCSS의 대상의 Style "' + get_prop.name + '"가 설정되어 있지않아 Tween 실행불가!');
+            throw new Error( '[ixBand] TweenCSS의 대상의 Style "' + get_prop.name + '"가 설정되어 있지않아 Tween 실행불가!' );
         }
 
         if ( typeof value === 'number' ) value = String(value);

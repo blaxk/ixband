@@ -4,9 +4,9 @@
 
 /**
  * Class 객체
- * extend, addListener, removeListener, hasListener, dispatch 기본 제공 (extend시 override 되지 않도록 주의)
+ * extend, addListener, removeListener, hasListener, dispatch, getEventData methods 기본 제공 (extend시 override 주의)
  * initialize 는 기본실행
- * extend 주의 : 초기에 선언시 instant를 사용하면 오류가 발생한다.
+ * 주의 : instance 를 extend 하게되면 오류가 발생한다.
  * @return	{Function}
  */
 ixBand.Class = function () {};
@@ -22,21 +22,29 @@ ixBand.Class.prototype = (function () {
     return proto;
 }());
 
+/**
+ * Class.extend()
+ * @param   {Object}    methods
+ * @param   {String}    className
+ * @returns {Function}
+ */
 ixBand.Class.extend = function ( methods, className ) {
-    var EXCEPTION_REG = new RegExp( '^(__eventPool__|__parentClass__|__className__|__extends__)$' );
+    var EXCEPTION_REG = new RegExp( '^(__parentClass__|__className__|__extends__)$' );
 
     var _parent = this,
         _className = ( typeof className === 'string' )? className : '$B.Class_' + __classCount++;
 
     if ( typeof methods === 'object' ) {
         var Class = function () {
+            this.__uId__ = $B.string.unique();
+            this.__eventPool__ = {};
+
             if ( typeof this.initialize === 'function' ) {
-                return this.initialize.apply( this, arguments );
+                this.initialize.apply( this, arguments );
             }
         };
 
         Class.prototype = {
-            __eventPool__: {},
             __parentClass__: _parent,
             __className__: _className,
             __extends__: ( _parent.prototype.__extends__ || _parent.prototype.__className__ ) + ' > ' + _className

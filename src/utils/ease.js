@@ -16,10 +16,10 @@ ixBand.utils.ease = {
         return c*t/d + b;
     },
     yoyo: function(t, b, c, d) {
-        return this.quadOut(t, b, c, d/2);
+        return ixBand.utils.ease.quadOut(t, b, c, d/2);
     },
     bounceIn: function(t, b, c, d) {
-        return c - this.bounceOut(d-t, 0, c, d) + b;
+        return c - ixBand.utils.ease.bounceOut(d-t, 0, c, d) + b;
     },
     bounceOut: function(t, b, c, d) {
         if((t/=d) <(1/2.75)) {
@@ -33,8 +33,8 @@ ixBand.utils.ease = {
         }
     },
     bounceInOut: function(t, b, c, d) {
-        if(t < d/2) return this.bounceIn(t*2, 0, c, d) * .5 + b;
-        else return this.bounceOut(t*2-d, 0, c, d) * .5 + c*.5 + b;
+        if(t < d/2) return ixBand.utils.ease.bounceIn(t*2, 0, c, d) * .5 + b;
+        else return ixBand.utils.ease.bounceOut(t*2-d, 0, c, d) * .5 + c*.5 + b;
     },
     cubicIn: function(t, b, c, d) {
         return c*(t/=d)*t*t + b;

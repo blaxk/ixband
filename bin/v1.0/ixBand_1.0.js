@@ -1,7 +1,7 @@
 /**
  * ixBand - Javascript Library
  * @package	{ixBand}
- * @version v1.0.0 - 170216 (blaxk)
+ * @version v1.0.0 - 170217 (blaxk)
  * Licensed under the MIT, http://ixband.com
  */
 ;(function () {
@@ -1758,22 +1758,30 @@
     
     /**
      * CustomEvents 객체
+     * 기본 Event Property : e.type, e.data
+     * @param   {Boolean}   dataCheck (default:false)
      * @return	{Function}
      */
-    var CustomEvents = function () {};
+    var CustomEvents = function ( dataCheck ) {
+        this.__eventPool__ = {};
+        this.__uId__ = $B.string.unique();
+        this.__eventDataCheck__ = dataCheck || false;
+    };
+    
     CustomEvents.prototype = {
-        __eventPool__: {},
         /**
          * @param {String}    type      event type
          * @param {Function}  callback
-         * @param {Object}    eventPool 대체할 eventPool, 상속 관계에서 별도의 eventPool을 지정할때 사용한다.
+         * @param {*}         data
          */
-        addListener: function ( type, callback, eventPool ) {
-            if ( typeof type === 'string' && typeof callback === 'function' && !this.hasListener(type, callback) ) {
-                var evtPool = $B.isObject( eventPool ) || this.__eventPool__,
-                    events = evtPool[type];
-                if ( !events ) events = evtPool[type] = [];
-                events.push( callback );
+        addListener: function ( type, callback, data ) {
+            if ( ($B.isString(type) && type) && $B.isFunction(callback) && !this.hasListener(type, callback, data) ) {
+                var events = this.__eventPool__[type];
+                if ( !events ) events = this.__eventPool__[type] = [];
+                events.push({
+                    handler: callback,
+                    data: data
+                });
             }
     
             return this;
@@ -1782,26 +1790,34 @@
         /**
          * @param {String}    type      event type
          * @param {Function}  callback
-         * @param {Object}    eventPool 대체할 eventPool, 상속 관계에서 별도의 eventPool을 지정할때 사용한다.
+         * @param {*}         data
          */
-        removeListener: function ( type, callback, eventPool ) {
-            var evtPool = $B.isObject( eventPool ) || this.__eventPool__,
-                events = evtPool[type];
+        removeListener: function ( type, callback, data ) {
+            var events = this.__eventPool__[type];
     
             if ( events ) {
                 if ( typeof callback === 'function' ) {
-                    var evtLength = events.length;
-                    for ( var i = 0; i < evtLength; ++i ) {
-                        if ( callback === events[i] ) {
-                            events.splice( i, 1 );
-                            break;
+                    var evtLength = events.length, i;
+    
+                    if ( !$B.isEmpty(data) && this.__eventDataCheck__ ) {
+                        for ( i = 0; i < evtLength; ++i ) {
+                            var eData = events[i];
+                            if ( callback === eData.handler && $B.isEqual(eData.data, data) ) {
+                                events.splice( i, 1 );
+                            }
+                        }
+                    } else {
+                        for ( i = 0; i < evtLength; ++i ) {
+                            if ( callback === events[i].handler ) {
+                                events.splice( i, 1 );
+                            }
                         }
                     }
-                } else if ( type ) {
-                    delete evtPool[type];
                 } else {
-                    evtPool = {};
+                    delete this.__eventPool__[type];
                 }
+            } else {
+                this.__eventPool__ = {};
             }
     
             return this;
@@ -1809,22 +1825,32 @@
     
         /**
          * @param   {String}    type      event type
-         * @param   {Function}
-         * @param   {Object}    eventPool 대체할 eventPool, 상속 관계에서 별도의 eventPool을 지정할때 사용한다.
+         * @param   {Function}  callback
+         * @param   {*}         data
          * @return  {Boolean}
          */
-        hasListener: function ( type, callback, eventPool ) {
+        hasListener: function ( type, callback, data ) {
             var result = false,
-                evtPool = $B.isObject( eventPool ) || this.__eventPool__,
-                events = evtPool[type];
+                events = this.__eventPool__[type];
     
             if ( events ) {
                 if ( typeof callback === 'function' ) {
-                    var evtLength = events.length;
-                    for ( var i = 0; i < evtLength; ++i ) {
-                        if ( callback === events[i] ) {
-                            result = true;
-                            break;
+                    var evtLength = events.length, i;
+    
+                    if ( !$B.isEmpty(data) && this.__eventDataCheck__ ) {
+                        for ( i = 0; i < evtLength; ++i ) {
+                            var eData = events[i];
+                            if ( callback === eData.handler && $B.isEqual(eData.data, data) ) {
+                                result = true;
+                                break;
+                            }
+                        }
+                    } else {
+                        for ( i = 0; i < evtLength; ++i ) {
+                            if ( callback === events[i].handler ) {
+                                result = true;
+                                break;
+                            }
                         }
                     }
                 } else {
@@ -1838,12 +1864,10 @@
         /**
          * @param {String}  type     event type
          * @param {Object}  datas
-         * @param {Object}  eventPool 대체할 eventPool, 상속 관계에서 별도의 eventPool을 지정할때 사용한다.
          */
-        dispatch: function ( type, datas, eventPool ) {
+        dispatch: function ( type, datas ) {
             var _this = this,
-                evtPool = $B.isObject( eventPool ) || this.__eventPool__,
-                events = evtPool[type];
+                events = this.__eventPool__[type];
     
             if ( events ) {
                 var evtLength = events.length;
@@ -1855,7 +1879,7 @@
                             if ( key !== 'type' ) evt[key] = datas[key];
                         }
                     }
-                    events[i].call( _this, evt );
+                    events[i].handler.call( _this, evt );
                 }
             }
     
@@ -1870,9 +1894,9 @@
     
     /**
      * Class 객체
-     * extend, addListener, removeListener, hasListener, dispatch 기본 제공 (extend시 override 되지 않도록 주의)
+     * extend, addListener, removeListener, hasListener, dispatch, getEventData methods 기본 제공 (extend시 override 주의)
      * initialize 는 기본실행
-     * extend 주의 : 초기에 선언시 instant를 사용하면 오류가 발생한다.
+     * 주의 : instance 를 extend 하게되면 오류가 발생한다.
      * @return	{Function}
      */
     ixBand.Class = function () {};
@@ -1888,21 +1912,29 @@
         return proto;
     }());
     
+    /**
+     * Class.extend()
+     * @param   {Object}    methods
+     * @param   {String}    className
+     * @returns {Function}
+     */
     ixBand.Class.extend = function ( methods, className ) {
-        var EXCEPTION_REG = new RegExp( '^(__eventPool__|__parentClass__|__className__|__extends__)$' );
+        var EXCEPTION_REG = new RegExp( '^(__parentClass__|__className__|__extends__)$' );
     
         var _parent = this,
             _className = ( typeof className === 'string' )? className : '$B.Class_' + __classCount++;
     
         if ( typeof methods === 'object' ) {
             var Class = function () {
+                this.__uId__ = $B.string.unique();
+                this.__eventPool__ = {};
+    
                 if ( typeof this.initialize === 'function' ) {
-                    return this.initialize.apply( this, arguments );
+                    this.initialize.apply( this, arguments );
                 }
             };
     
             Class.prototype = {
-                __eventPool__: {},
                 __parentClass__: _parent,
                 __className__: _className,
                 __extends__: ( _parent.prototype.__extends__ || _parent.prototype.__className__ ) + ' > ' + _className
@@ -1933,150 +1965,149 @@
     };
 
 
-    (function () {
-        // ############################################################################ //
-        // ############################################################################ //
-        // 								ua (userAgent)									//
-        // ############################################################################ //
-        // ############################################################################ //
-        ixBand.ua = (function () {
-            var nua = navigator.userAgent.toLowerCase(),
-                docMode = document.documentMode,
-                isWindows = nua.indexOf('windows') > -1,
-                isLinuxPlatform = ( '' + navigator.platform ).toLowerCase().indexOf( 'linux' ) > -1;
+    // ############################################################################ //
+    // ############################################################################ //
+    // 								ua (userAgent)									//
+    // ############################################################################ //
+    // ############################################################################ //
     
-            /**
-             * 브라우져, OS 체크
-             * @type	{ua}
-             */
-            var ua = {
-                IE_VERSION: 0,
-                DOC_MODE: docMode || 0,
-                MSIE: false,
-                EDGE: nua.indexOf('edge') > -1,
-                IE7_LT: false,//ie7미만 (~6)
-                IE8_LT: false,//ie8미만 (~7)
-                IE9_LT: false,//ie9미만 (~8)
-                IE10_LT: false,//ie10미만 (~9)
-                IE11_LT: false,//ie10미만 (~10)
-                DOC_MODE_IE8_LT: false,//문서모드 8미만
-                DOC_MODE_IE9_LT: false,//문서모드 9미만
-                DOC_MODE_IE10_LT: false,//문서모드 10미만
-                DOC_MODE_IE11_LT: false,//문서모드 11미만
-                DOC_MODE_IE12_LT: false,//문서모드 12미만
-                IE_COMPATIBLE: false,//호환성모드
-                SAFARI: nua.indexOf('safari') > -1 && nua.indexOf('chrome') == -1 && !isLinuxPlatform,
-                FIREFOX: nua.indexOf('firefox') > -1 && !/compatible|webkit/.test(nua),
-                OPERA: /\b(opera|opr)/.test(nua),
-                OPERA_MINI: /\b(opera mini)/.test(nua),
-                CHROME: nua.indexOf('chrome') > -1,
-                MOBILE_IOS: /ipod|iphone|ipad/.test(nua) && !isWindows && !isLinuxPlatform,
-                IPHONE: nua.indexOf('iphone') > -1 && !isWindows && !isLinuxPlatform,
-                IPAD: nua.indexOf('ipad') > -1 && !isWindows && !isLinuxPlatform,
-                ANDROID: nua.indexOf('android') > -1 && !isWindows,
-                MAC: nua.indexOf('mac') > -1 && !isWindows && !isLinuxPlatform,
-                WINDOWS: isWindows,
-                WINDOWS_PHONE: nua.indexOf('windows phone') > -1 && isWindows,
-                LINUX: nua.indexOf('linux') > -1,
-                WEBKIT: nua.indexOf('webkit') > -1,
-                MOZILLA: nua.indexOf('mozilla') > -1,
-                TOUCH_DEVICE: ('ontouchstart' in window) || nua.indexOf('touch') > -1,
-                MOBILE: nua.indexOf('mobile') > -1,
-                ANDROID_TABLET: false,
-                WINDOWS_TABLET: false,
-                TABLET: false,
-                SMART_PHONE: false,
-                VERSION: 0,//브리우저 버전 (IE의 경우 8~는 DOC_MODE를 참조한다.)
-                OS_VERSION: 0,
-                WEBKIT_VERSION: 0
-            };
+    ixBand.ua = (function () {
+        var nua = navigator.userAgent.toLowerCase(),
+            docMode = document.documentMode,
+            isWindows = nua.indexOf('windows') > -1,
+            isLinuxPlatform = ( '' + navigator.platform ).toLowerCase().indexOf( 'linux' ) > -1;
     
-            ua.CHROME = ua.CHROME && !ua.SAFARI && !ua.OPERA && !ua.EDGE;
+        /**
+         * 브라우져, OS 체크
+         * @type	{ua}
+         */
+        var ua = {
+            IE_VERSION: 0,
+            DOC_MODE: docMode || 0,
+            MSIE: false,
+            EDGE: nua.indexOf('edge') > -1,
+            IE7_LT: false,//ie7미만 (~6)
+            IE8_LT: false,//ie8미만 (~7)
+            IE9_LT: false,//ie9미만 (~8)
+            IE10_LT: false,//ie10미만 (~9)
+            IE11_LT: false,//ie10미만 (~10)
+            DOC_MODE_IE8_LT: false,//문서모드 8미만
+            DOC_MODE_IE9_LT: false,//문서모드 9미만
+            DOC_MODE_IE10_LT: false,//문서모드 10미만
+            DOC_MODE_IE11_LT: false,//문서모드 11미만
+            DOC_MODE_IE12_LT: false,//문서모드 12미만
+            IE_COMPATIBLE: false,//호환성모드
+            SAFARI: nua.indexOf('safari') > -1 && nua.indexOf('chrome') == -1 && !isLinuxPlatform,
+            FIREFOX: nua.indexOf('firefox') > -1 && !/compatible|webkit/.test(nua),
+            OPERA: /\b(opera|opr)/.test(nua),
+            OPERA_MINI: /\b(opera mini)/.test(nua),
+            CHROME: nua.indexOf('chrome') > -1,
+            MOBILE_IOS: /ipod|iphone|ipad/.test(nua) && !isWindows && !isLinuxPlatform,
+            IPHONE: nua.indexOf('iphone') > -1 && !isWindows && !isLinuxPlatform,
+            IPAD: nua.indexOf('ipad') > -1 && !isWindows && !isLinuxPlatform,
+            ANDROID: nua.indexOf('android') > -1 && !isWindows,
+            MAC: nua.indexOf('mac') > -1 && !isWindows && !isLinuxPlatform,
+            WINDOWS: isWindows,
+            WINDOWS_PHONE: nua.indexOf('windows phone') > -1 && isWindows,
+            LINUX: nua.indexOf('linux') > -1,
+            WEBKIT: nua.indexOf('webkit') > -1,
+            MOZILLA: nua.indexOf('mozilla') > -1,
+            TOUCH_DEVICE: ('ontouchstart' in window) || nua.indexOf('touch') > -1,
+            MOBILE: nua.indexOf('mobile') > -1,
+            ANDROID_TABLET: false,
+            WINDOWS_TABLET: false,
+            TABLET: false,
+            SMART_PHONE: false,
+            VERSION: 0,//브리우저 버전 (IE의 경우 8~는 DOC_MODE를 참조한다.)
+            OS_VERSION: 0,
+            WEBKIT_VERSION: 0
+        };
     
-            //IE11부터는 appName이 Netscape로 나오기때문에 docMode도 체크
-            ua.MSIE = navigator.appName == 'Microsoft Internet Explorer' || docMode > 10;
+        ua.CHROME = ua.CHROME && !ua.SAFARI && !ua.OPERA && !ua.EDGE;
     
-            if ( ua.MSIE ) {
-                var re = new RegExp( 'msie ([0-9]{1,}[\.0-9]{0,})' );
-                if ( re.exec(nua) ) {
-                    ua.IE_VERSION = parseFloat(RegExp.$1);
-                    if ( ua.IE_VERSION < 7 ) ua.IE7_LT = true;
-                    if ( ua.IE_VERSION < 8 ) ua.IE8_LT = true;
-                    if ( ua.IE_VERSION < 9 ) ua.IE9_LT = true;
-                    if ( ua.IE_VERSION < 10 ) ua.IE10_LT = true;
-                    if ( ua.IE_VERSION < 11 ) ua.IE11_LT = true;
-                }
+        //IE11부터는 appName이 Netscape로 나오기때문에 docMode도 체크
+        ua.MSIE = navigator.appName == 'Microsoft Internet Explorer' || docMode > 10;
     
-                if ( docMode ) {
-                    if ( docMode < 8 ) ua.DOC_MODE_IE8_LT = true;
-                    if ( docMode < 9 ) ua.DOC_MODE_IE9_LT = true;
-                    if ( docMode < 10 ) ua.DOC_MODE_IE10_LT = true;
-                    if ( docMode < 11 ) ua.DOC_MODE_IE11_LT = true;
-                    if ( docMode < 12 ) ua.DOC_MODE_IE12_LT = true;
-                } else {
-                    ua.DOC_MODE_IE8_LT = true;
-                    ua.DOC_MODE_IE9_LT = true;
-                    ua.DOC_MODE_IE10_LT = true;
-                    ua.DOC_MODE_IE11_LT = true;
-                    ua.DOC_MODE_IE12_LT = true;
-                }
-    
-                ua.IE_COMPATIBLE = /msie 7.*trident/.test(nua);
+        if ( ua.MSIE ) {
+            var re = new RegExp( 'msie ([0-9]{1,}[\.0-9]{0,})' );
+            if ( re.exec(nua) ) {
+                ua.IE_VERSION = parseFloat(RegExp.$1);
+                if ( ua.IE_VERSION < 7 ) ua.IE7_LT = true;
+                if ( ua.IE_VERSION < 8 ) ua.IE8_LT = true;
+                if ( ua.IE_VERSION < 9 ) ua.IE9_LT = true;
+                if ( ua.IE_VERSION < 10 ) ua.IE10_LT = true;
+                if ( ua.IE_VERSION < 11 ) ua.IE11_LT = true;
             }
     
-            ua.ANDROID_TABLET = ua.ANDROID && !ua.MOBILE;
-            ua.WINDOWS_TABLET = ua.WINDOWS && /tablet/.test(nua) && !ua.IE_COMPATIBLE;
-            ua.TABLET = ua.IPAD || ua.ANDROID_TABLET || ua.WINDOWS_TABLET;
-            ua.SMART_PHONE = ( ua.MOBILE && !ua.TABLET ) || ua.WINDOWS_PHONE;
-    
-            if ( ua.EDGE ) {
-                ua.TOUCH_DEVICE = navigator.pointerEnabled || navigator.msPointerEnabled;
-            }
-    
-            var osMatch = nua.match( /(mac os x|os|windows phone|windows nt|android)\s([0-9\._]+)/i );
-            if ( osMatch && osMatch.length > 2 ) ua.OS_VERSION = String( osMatch[2] ).replace( '_', '.' );
-    
-            if ( ua.WEBKIT ) ua.WEBKIT_VERSION = getVersion( 'webkit' );
-    
-            if ( ua.MSIE ) {
-                ua.VERSION = String(ua.DOC_MODE) || ua.IE_VERSION;
-            } else if ( ua.CHROME ) {
-                ua.VERSION = getVersion( 'chrome' );
-            } else if ( ua.FIREFOX ) {
-                ua.VERSION = getVersion( 'firefox' );
-            } else if ( ua.SAFARI ) {
-                ua.VERSION = getVersion();
-            } else if ( ua.OPERA ) {
-                if ( ua.OPERA_MINI ) {
-                    ua.VERSION = getVersion( 'opera mini' );
-                } else {
-                    ua.VERSION = getVersion( 'opr' ) || getVersion();
-                }
-            } else if ( ua.EDGE ) {
-                ua.VERSION = getVersion( 'edge' );
+            if ( docMode ) {
+                if ( docMode < 8 ) ua.DOC_MODE_IE8_LT = true;
+                if ( docMode < 9 ) ua.DOC_MODE_IE9_LT = true;
+                if ( docMode < 10 ) ua.DOC_MODE_IE10_LT = true;
+                if ( docMode < 11 ) ua.DOC_MODE_IE11_LT = true;
+                if ( docMode < 12 ) ua.DOC_MODE_IE12_LT = true;
             } else {
-                ua.VERSION = getVersion();
+                ua.DOC_MODE_IE8_LT = true;
+                ua.DOC_MODE_IE9_LT = true;
+                ua.DOC_MODE_IE10_LT = true;
+                ua.DOC_MODE_IE11_LT = true;
+                ua.DOC_MODE_IE12_LT = true;
             }
     
-            // 버전이 없으면 '0'을 반환
-            function getVersion ( browserName ) {
-                var matchs = nua.match( /version\/([\d.]*)/ );
+            ua.IE_COMPATIBLE = /msie 7.*trident/.test(nua);
+        }
     
-                if ( browserName ) {
-                    var reg = new RegExp( browserName + '/([\\d.]*)' );
-                    matchs = nua.match( reg );
-                }
+        ua.ANDROID_TABLET = ua.ANDROID && !ua.MOBILE;
+        ua.WINDOWS_TABLET = ua.WINDOWS && /tablet/.test(nua) && !ua.IE_COMPATIBLE;
+        ua.TABLET = ua.IPAD || ua.ANDROID_TABLET || ua.WINDOWS_TABLET;
+        ua.SMART_PHONE = ( ua.MOBILE && !ua.TABLET ) || ua.WINDOWS_PHONE;
     
-                if ( matchs && matchs.length > 1 ) {
-                    return matchs[1];
-                } else {
-                    return 0;
-                }
+        if ( ua.EDGE ) {
+            ua.TOUCH_DEVICE = navigator.pointerEnabled || navigator.msPointerEnabled;
+        }
+    
+        var osMatch = nua.match( /(mac os x|os|windows phone|windows nt|android)\s([0-9\._]+)/i );
+        if ( osMatch && osMatch.length > 2 ) ua.OS_VERSION = String( osMatch[2] ).replace( '_', '.' );
+    
+        if ( ua.WEBKIT ) ua.WEBKIT_VERSION = getVersion( 'webkit' );
+    
+        if ( ua.MSIE ) {
+            ua.VERSION = String(ua.DOC_MODE) || ua.IE_VERSION;
+        } else if ( ua.CHROME ) {
+            ua.VERSION = getVersion( 'chrome' );
+        } else if ( ua.FIREFOX ) {
+            ua.VERSION = getVersion( 'firefox' );
+        } else if ( ua.SAFARI ) {
+            ua.VERSION = getVersion();
+        } else if ( ua.OPERA ) {
+            if ( ua.OPERA_MINI ) {
+                ua.VERSION = getVersion( 'opera mini' );
+            } else {
+                ua.VERSION = getVersion( 'opr' ) || getVersion();
+            }
+        } else if ( ua.EDGE ) {
+            ua.VERSION = getVersion( 'edge' );
+        } else {
+            ua.VERSION = getVersion();
+        }
+    
+        // 버전이 없으면 '0'을 반환
+        function getVersion ( browserName ) {
+            var matchs = nua.match( /version\/([\d.]*)/ );
+    
+            if ( browserName ) {
+                var reg = new RegExp( browserName + '/([\\d.]*)' );
+                matchs = nua.match( reg );
             }
     
-            return ua;
-        }());
-    })();
+            if ( matchs && matchs.length > 1 ) {
+                return matchs[1];
+            } else {
+                return 0;
+            }
+        }
+    
+        return ua;
+    }());
 
 
     // ############################################################################ //
@@ -2941,6 +2972,1178 @@
 
     // ############################################################################ //
     // ############################################################################ //
+    // 									event										//
+    // ############################################################################ //
+    // ############################################################################ //
+    
+    /**
+     * 함수를 올바른 this 키워드와 함께 호출하기 위해서 클로저가 사용된다.<br>
+     * 이런 종류의 클로저는 IE에서 메모리 누수를 발생시킬 수 있기 때문에, onunload 이벤트를 등록하고 이시점에 등록된 모든 이벤트를 삭제한다.<br>
+     * Event Properties : type, target, currentTarget, relatedTarget, eventPhase, clientX, clientY, screenX, screenY, shiftKey, charCode, delta:마우스휠이벤트에서 발생, stopPropagation(), preventDefault()<br>
+     */
+    ixBand.event = (function () {
+        //EventType의 크로스부라우징 처리
+        var CrossType = {
+            mousewheel: 'mousewheel',
+            transitionend: 'transitionend'
+        };
+    
+        if ( $B.ua.WEBKIT ) {
+            CrossType.transitionend = 'webkitTransitionEnd';
+        } else if ( $B.ua.OPERA ) {
+            CrossType.transitionend = 'otransitionend';
+        } else if ( $B.ua.FIREFOX ) {
+            CrossType.mousewheel = 'DOMMouseScroll';
+        }
+    
+        var _eventCount = 0,
+            _hasDomEvent = ( document.addEventListener )? true : false,
+            _hasIEEvent = ( document.attachEvent )? true : false;
+    
+        function getEventID () {
+            return 'ixe' + new Date().getTime() + _eventCount++;
+        }
+    
+        function removeAllHandlers (e) {
+            var _this = this, id;
+    
+            for ( id in _this._ix_allEvents_ ) {
+                var h = _this._ix_allEvents_[id];
+                h.el.detachEvent( 'on' + h.type, h.wrapHandler );
+                delete _this._ix_allEvents_[id];
+            }
+        }
+    
+        //대상의 모든 이벤트 삭제
+        function removeAllEvent ( el, clone ) {
+            if ( el._ix_eventIds_ ) {
+                var ids = el._ix_eventIds_,
+                    eidNum = ids.length, i;
+    
+                for ( i = 0; i < eidNum; ++i ) {
+                    var id = ids[i],
+                        evt = window._ix_allEvents_[id],
+                        type = evt.type,
+                        matchEl = ( clone )? true: evt.el == el;
+    
+                    //삭제
+                    if ( matchEl ) {
+                        Evt._removeEventListener( el, type, evt.wrapHandler );
+    
+                        //창마다 하나식 있는 _ix_allEvents_ 객체에서 이벤트정보 삭제
+                        if ( !clone ) delete window._ix_allEvents_[id];
+                    }
+                }
+    
+                if ( !clone ) el._ix_eventIds_ = null;
+            }
+        }
+    
+        //크로스브라우징 이벤트 타입 반환
+        function getCrossType ( type ) {
+            var crossType = CrossType[type];
+            return crossType || type;
+        }
+    
+        //origin event type to cross event type
+        function originToCrossType ( type ) {
+            if ( type === 'DOMMouseScroll' ) {
+                type = 'mousewheel';
+            } else if ( type === 'webkitTransitionEnd' ) {
+                type = 'transitionend';
+            } else if ( type === 'otransitionend' ) {
+                type = 'transitionend';
+            }
+    
+            return type;
+        }
+    
+    
+        // ==================== Public Methods ==================== //
+        var Evt = {
+            add: null,
+    
+            find: function ( el, type, handler, isAll ) {
+                var eventIds = el._ix_eventIds_;
+                //등록된 _ix_eventIds_가 없으면 -1반환
+                if ( !eventIds ) return -1;
+    
+                var hNum = eventIds.length - 1,
+                    alls = [],
+                    i;
+    
+                type = getCrossType( type );
+    
+                //가장최근에 등록된 이벤트가 제거될 가능성이 높기때문에 루프를 뒤에서 부터 돈다.
+                for ( i = hNum; i >= 0; --i ) {
+                    var hId = eventIds[i],
+                        evt = window._ix_allEvents_[hId];
+    
+                    if ( isAll ) {
+                        if ( evt.type === type ) {
+                            alls.push( i );
+                        }
+                    } else {
+                        if ( evt.type === type && evt.handler === handler ) {
+                            return i;
+                            break;
+                        }
+                    }
+                }
+    
+                if ( isAll ) {
+                    return alls;
+                } else {
+                    return -1;
+                }
+            },
+    
+            trigger: function ( el, type, data ) {
+                if ( typeof document.dispatchEvent === 'function' ) {
+                    // dispatch for firefox + others
+                    var evt = document.createEvent( 'HTMLEvents' );
+                    evt.initEvent( type, true, true ); // type,bubbling,cancelable
+                    el.dispatchEvent( evt );
+                } else if ( document.createEventObject ) {
+                    // dispatch for IE
+                    try {
+                        var evtObj = document.createEventObject();
+                        el.fireEvent( 'on' + type, evtObj );
+                    } catch (e) {
+                        //CustomEvent
+                        var evts = this.find( el, type, null, true ),
+                            evtLength = evts.length;
+    
+                        for ( var i = 0; i < evtLength; ++i ) {
+                            var idx = evts[i],
+                                id = el._ix_eventIds_[idx],
+                                evt = window._ix_allEvents_[id];
+    
+                            evt.wrapHandler.call( e.el, {
+                                type: evt.type,
+                                currentTarget: el,
+                                data: data || evt.customData
+                            });
+                        }
+                    }
+                }
+            },
+    
+            remove: function ( el, type, handler ) {
+                //el._ix_eventIds_[] 배열에서 찾는다.
+                var i = this.find( el, type, handler );
+                if ( i == -1 ) return;
+    
+                var id = el._ix_eventIds_[i],
+                    h = window._ix_allEvents_[id];
+    
+                this._removeEventListener( el, type, h.wrapHandler );
+    
+                //배열에서 el 제거
+                el._ix_eventIds_.splice( i, 1 );
+                //창마다 하나식 있는 _ix_allEvents_ 객체에서 이벤트정보 삭제
+                delete window._ix_allEvents_[id];
+            },
+    
+            //대상 개체의 해당 타입의 모든 이벤트 삭제
+            removeTypeAll: function ( el, type ) {
+                var eventIds = el._ix_eventIds_;
+                //등록된 _ix_eventIds_가 없으면 정지.
+                if ( !eventIds ) return;
+    
+                //type = getCrossType( type );
+    
+                //가장최근에 등록된 이벤트가 제거될 가능성이 높기때문에 루프를 뒤에서 부터 돈다.
+                for ( var i = eventIds.length - 1; i >= 0; --i ) {
+                    var id = eventIds[i],
+                        evt = window._ix_allEvents_[id];
+    
+                    if ( evt.type == type ) {
+                        this._removeEventListener( el, type, evt.wrapHandler );
+                        //배열에서 el 제거
+                        el._ix_eventIds_.splice( i, 1 );
+                        //창마다 하나식 있는 _ix_allEvents_ 객체에서 이벤트정보 삭제
+                        delete window._ix_allEvents_[id];
+                    }
+                }
+            },
+    
+            //대상 객체의 이벤트 모두 삭제
+            removeAll: function ( els, childRemove, clone ) {
+                var i, elNum = els.length;
+                for ( i = 0; i < elNum; ++i ) {
+                    var el = els[i];
+    
+                    removeAllEvent( el, clone );
+    
+                    //자식 이벤트 삭제
+                    if ( childRemove ) {
+                        var children = el.children;
+    
+                        if ( children.length > 0 ) {
+                            this.removeAll( children, true, clone );
+                        }
+                    }
+                }
+            },
+    
+            //removeEventListener 크로스브라우징 처리
+            _removeEventListener: function ( el, type, handler ) {
+                if ( _hasDomEvent ) {
+                    this._removeEventListener = function ( el, type, handler ) {
+                        el.removeEventListener( getCrossType(type), handler, false );
+                    };
+                } else if ( _hasIEEvent ) {
+                    this._removeEventListener = function ( el, type, handler ) {
+                        el.detachEvent( 'on' + type, handler );
+                    };
+                }
+                this._removeEventListener( el, type, handler );
+            },
+    
+            /**
+             * 파폭에서 지원하지 않는 event.offsetX 크로스브라우징 해결하여 반환.
+             * @param	{Object}	event	이벤트 핸들러의 이벤트.
+             * @return	{Number}
+             */
+            offsetX: function ( evt ) {
+                if ( !$B.ua.FIREFOX ) {
+                    this.offsetX = function ( evt ) { return evt.offsetX; };
+                    //파폭
+                } else {
+                    this.offsetX = function ( evt ) { return evt.layerX - evt.currentTarget.offsetLeft; };
+                }
+                return this.offsetX( evt );
+            },
+            /**
+             * 파폭에서 지원하지 않는 event.offsetY 크로스브라우징 해결하여 반환.
+             * @param	{Object}	event	이벤트 핸들러의 이벤트.
+             * @return	{Number}
+             */
+            offsetY: function ( evt ) {
+                if ( !$B.ua.FIREFOX ) {
+                    this.offsetY = function ( evt ) { return evt.offsetY; };
+                    //파폭
+                } else {
+                    this.offsetY = function ( evt ) { return evt.layerY - evt.currentTarget.offsetTop; };
+                }
+                return this.offsetY( evt );
+            },
+    
+            /**
+             * IE9 미만에서 지원하지 않는 event.pageX 크로스브라우징 해결하여 반환.
+             * @param	{Object}	event	이벤트 핸들러의 이벤트.
+             * @return	{Number}
+             */
+            pageX: function ( evt ) {
+                if ( $B.ua.DOC_MODE_IE9_LT ) {
+                    this.pageX = function ( evt ) {
+                        var eDoc = evt.target.ownerDocument || document,
+                            docEl = eDoc.documentElement,
+                            body = eDoc.body;
+    
+                        return evt.clientX + ( docEl && docEl.scrollLeft || body && body.scrollLeft || 0 );
+                    };
+                } else {
+                    this.pageX = function ( evt ) { return evt.pageX; };
+                }
+                return this.pageX( evt );
+            },
+            /**
+             * IE9 미만에서 지원하지 않는 event.pageY 크로스브라우징 해결하여 반환.
+             * @param	{Object}	event	이벤트 핸들러의 이벤트.
+             * @return	{Number}
+             */
+            pageY: function ( evt ) {
+                if ( $B.ua.DOC_MODE_IE9_LT ) {
+                    this.pageY = function ( evt ) {
+                        var eDoc = evt.target.ownerDocument || document,
+                            docEl = eDoc.documentElement,
+                            body = eDoc.body;
+    
+                        return evt.clientY + ( docEl && docEl.scrollTop || body && body.scrollTop || 0 );
+                    };
+                } else {
+                    this.pageY = function ( evt ) { return evt.pageY; };
+                }
+                return this.pageY( evt );
+            }
+        };
+    
+        // ==================== DOM Browser ==================== //
+    
+        if ( _hasDomEvent ) {
+            Evt.add = function ( el, type, handler, data ) {
+                if ( this.find( el, type, handler ) != -1 ) return;
+    
+                //중첩된 함수를 정의하고 이 함수를 handler 함수 대신 등록한다.
+                var wrapHandler = function (e) {
+                    var evt = {
+                        _event: e,			//실제 이벤트 객체
+                        type: originToCrossType( e.type ),
+                        target: e.target,
+                        currentTarget: e.currentTarget,
+                        relatedTarget: e.relatedTarget,
+                        eventPhase: e.eventPhase,
+                        //마우스 좌표
+                        layerX: e.layerX, layerY: e.layerX,//파폭
+                        clientX: e.clientX, clientY: e.clientY,
+                        pageX: e.pageX, pageY: e.pageY,
+                        offsetX: e.offsetX, offsetY: e.offsetY,
+                        screenX: e.screenX, screenY: e.screenY,
+                        shiftKey: e.shiftKey, charCode: e.charCode,
+                        altKey: e.altKey,
+                        ctrlKey: e.ctrlKey,
+                        //이벤트 관리 함수
+                        stopPropagation: function () { if (this._event) this._event.stopPropagation(); },
+                        preventDefault: function () { if (this._event) this._event.preventDefault(); },
+                        //mousewheel
+                        delta: 0,
+                        data: e.customData || data
+                    };
+    
+                    /*
+                     mousewheel delta
+                     trace( 'detail:' + e.detail );//FF, Oprera
+                     trace( 'wheelDelta:' + e.wheelDelta );//IE, Chrome, Safari, Opera
+                     */
+                    if ( e.wheelDelta ) {
+                        evt.delta = e.wheelDelta / 120;
+                    } else if ( e.detail ) {
+                        evt.delta = -e.detail / 3;
+                    }
+    
+                    handler.call( el, evt );
+                };
+    
+                el.addEventListener( getCrossType(type), wrapHandler, false );
+    
+                var h = {
+                    el: el,
+                    type: type,
+                    handler: handler,
+                    wrapHandler: wrapHandler,
+                    customData: data
+                };
+    
+                var w = window,
+                    id = getEventID();
+    
+                if ( !w._ix_allEvents_ ) w._ix_allEvents_ = {};
+                w._ix_allEvents_[id] = h;
+    
+                if ( !el._ix_eventIds_ ) el._ix_eventIds_ = [];
+                el._ix_eventIds_.push(id);
+            };
+    
+            // ==================== IE6~8 Browser ==================== //
+    
+        } else if ( _hasIEEvent ) {
+            Evt.add = function ( el, type, handler, data ) {
+                if ( this.find( el, type, handler ) != -1 ) return;
+    
+                //중첩된 함수를 정의하고 이 함수를 handler 함수 대신 등록한다.
+                var wrapHandler = function (e) {
+                    if ( !e ) e = window.event;
+    
+                    var evt = {
+                        _event: e,				//실제 IE이벤트 객체
+                        type: e.type,
+                        target: e.srcElement,
+                        currentTarget: el,
+                        relatedTarget: e.fromElement? e.fromElement : e.toElement,
+                        eventPhase: ( e.srcElement == el )? 2 : 3,
+                        //마우스 좌표
+                        layerX: e.layerX, layerY: e.layerX,//파폭
+                        clientX: e.clientX, clientY: e.clientY,
+                        pageX: e.pageX, pageY: e.pageY,
+                        offsetX: e.offsetX, offsetY: e.offsetY,
+                        screenX: e.screenX, screenY: e.screenY,
+                        shiftKey: e.shiftKey, charCode: e.keyCode,
+                        altKey: e.altKey,
+                        ctrlKey: e.ctrlKey,
+                        //이벤트 관리 함수
+                        stopPropagation: function () { if (this._event) this._event.cancelBubble = true; },
+                        preventDefault: function () { if (this._event) this._event.returnValue = false; },
+                        //mousewheel
+                        delta: e.wheelDelta / 120,
+                        data: e.customData || data
+                    };
+    
+                    handler.call( el, evt );
+                };
+    
+                //이벤트 등록
+                el.attachEvent( 'on' + type, wrapHandler );
+    
+                var h = {
+                    el: el,
+                    type: type,
+                    handler: handler,
+                    wrapHandler: wrapHandler,
+                    customData: data
+                };
+    
+                var w = window,
+                    id = getEventID();
+    
+                if ( !w._ix_allEvents_ ) w._ix_allEvents_ = {};
+                w._ix_allEvents_[id] = h;
+    
+                if ( !el._ix_eventIds_ ) el._ix_eventIds_ = [];
+                el._ix_eventIds_.push(id);
+    
+                //창과 관련된 onunload 이벤트가 없으면 하나 등록.
+                if ( !w._ix_onunloadHandlerReg_ ) {
+                    w._ix_onunloadHandlerReg_ = true;
+                    w.attachEvent( 'onunload', removeAllHandlers );
+                }
+            };
+        }
+    
+    
+        // ============================================================== //
+        // =====================	CustomEvents	===================== //
+        // ============================================================== //
+    
+        /**
+         * CustomEvents 객체
+         * @return	{Function}
+         */
+        Evt.CustomEvents = CustomEvents;
+    
+        return Evt;
+    }());
+
+
+    // ############################################################################ //
+    // ############################################################################ //
+    // 									geom										//
+    // ############################################################################ //
+    // ############################################################################ //
+    
+    /**
+     * @type {ixBand.geom}
+     */
+    ixBand.geom = {};
+
+
+    // ############################################################################ //
+    // ############################################################################ //
+    // 									html										//
+    // ############################################################################ //
+    // ############################################################################ //
+    
+    ixBand.html = {
+        HTML_CHARACTERS: {
+            '&amp;': '&',
+            '&gt;': '>',
+            '&lt;': '<',
+            '&quot;': '"',
+            '&#39;': "'",
+            '&nbsp;': ' '
+        },
+    
+        /**
+         * "<" 태그를 "&lt;" 처럼 변형된 태그 문자열로 반환 (기존 변환된 문자열 유지)
+         * @param	{String}	str
+         * @return  {String}
+         */
+        encode: function ( str ) {
+            if ( !str ) return '';
+    
+            var regAry = $B.object.toArray( this.HTML_CHARACTERS ),
+                reg = new RegExp( '(' + regAry.join('|') + ')', 'g' ),
+                characters = this._htmlChars ? this._htmlChars : this._htmlChars = $B.object.replaceKeyValue( this.HTML_CHARACTERS );
+    
+            return str.replace( reg, function ( match, capture ) {
+                return characters[capture] || capture;
+            });
+        },
+    
+        /**
+         * "&lt;" 처럼 변형된 태그 문자열을 "<" 태그로 반환 (기존 태그는 유지)
+         * @param	{String}	str
+         * @return  {String}
+         */
+        decode: function ( str ) {
+            if ( !str ) return '';
+    
+            var _this = this,
+                regAry = $B.object.toArray( _this.HTML_CHARACTERS, 'key' ),
+                reg = new RegExp( '(' + regAry.join('|') + '|&#[0-9]{1,5};' + ')', 'g' );
+    
+            return str.replace( reg, function ( match, capture ) {
+                return ( capture in _this.HTML_CHARACTERS ) ? _this.HTML_CHARACTERS[capture] : String.fromCharCode(parseInt(capture.substr(2), 10));
+            });
+        }
+    };
+
+
+    // ############################################################################ //
+    // ############################################################################ //
+    // 									measure										//
+    // ############################################################################ //
+    // ############################################################################ //
+    
+    ixBand.measure = {
+        /**
+         * Document 가로사이즈 반환 (스크롤바 미포함)
+         * @return	{Number}
+         */
+        documentWidth: function () {
+            var docEl = document.documentElement;
+            return Math.max( docEl.scrollWidth, document.body.scrollWidth, docEl.clientWidth );
+        },
+        /**
+         * Document 세로로사이즈 반환 (스크롤바 미포함)
+         * @return	{Number}
+         */
+        documentHeight: function () {
+            var docEl = document.documentElement;
+            return Math.max( docEl.scrollHeight, document.body.scrollHeight, docEl.clientHeight );
+        },
+        /**
+         * Viewport 가로사이즈 반환 (메뉴바, 툴바, 스크롤바를 제외)
+         * @return	{Number}
+         */
+        windowWidth: function () {
+            return document.documentElement.clientWidth;
+        },
+        /**
+         * Viewport 세로사이즈 반환 (메뉴바, 툴바, 스크롤바를 제외)
+         * @return	{Number}
+         */
+        windowHeight: function () {
+            return document.documentElement.clientHeight;
+        },
+        /**
+         * Windows 바탕화면에서 브라우져 X좌표
+         * @return	{Number}
+         */
+        screenX: function () {
+            if ( window.screenLeft ) {
+                this.screenX = function () { return window.screenLeft; };
+            } else {
+                this.screenX = function () { return window.screenX; };
+            }
+            return this.screenX();
+        },
+        /**
+         * Windows 바탕화면에서 브라우져 Y좌표
+         * @return	{Number}
+         */
+        screenY: function () {
+            if ( window.screenTop ) {
+                this.screenY = function () { return window.screenTop; };
+            } else {
+                this.screenY = function () { return window.screenY; };
+            }
+            return this.screenY();
+        }
+    };
+
+
+    // ############################################################################ //
+    // ############################################################################ //
+    // 									mobile										//
+    // ############################################################################ //
+    // ############################################################################ //
+    
+    
+    /**
+     * @type {ixBand.mobile}
+     */
+    ixBand.mobile = {
+        TOUCH_ACTION: TOUCH_ACTION
+    };
+    
+
+
+    // ############################################################################ //
+    // ############################################################################ //
+    // 									net										//
+    // ############################################################################ //
+    // ############################################################################ //
+    
+    /**
+     * @type	{net}
+     */
+    ixBand.net = {
+        /**
+         * URL 이동
+         * @param	{String}	url			이동할 페이지 url
+         * @param	{String}	urlTarget	이동할 페이지 urlTarget
+         */
+        goToURL: function ( url, urlTarget ) {
+            if ( !urlTarget ) {
+                document.location.href = url;
+            } else {
+                switch ( urlTarget ) {
+                    case '_blank':
+                        window.open( url, urlTarget );
+                        break;
+                    case '_self':
+                        self.location.href = url;
+                        break;
+                    case '_parent':
+                        parent.location.href = url;
+                        break;
+                    case '_top':
+                        top.location.href = url;
+                        break;
+                }
+            }
+        }
+    };
+
+
+    // ############################################################################ //
+    // ############################################################################ //
+    // 									string										//
+    // ############################################################################ //
+    // ############################################################################ //
+    
+    ixBand.string = {
+        /**
+         * 대상이 문자열이면 true반환
+         * @param	{String}	target		대상 문자열
+         * @param	{String}	errorMsg	콘솔에 표시할 에러 메세지
+         * @return	{Boolean}
+         */
+        is: function ( target, errorMsg ) {
+            var result = (typeof target === 'string');
+    
+            if ( errorMsg && !result ) {
+                warning( errorMsg );
+                return false;
+            } else {
+                return result;
+            }
+        },
+    
+        /**
+         * 문자열의 원하는 Index에 문자열을 추가하여 반환. 반복적용 가능.
+         * 반복적용시 마지막 index에 문자추가되지 않음.
+         * @param	{String}	target		대상 문자열
+         * @param	{int}		addIndex	삽입할 Index.
+         * @param	{String}	addText		추가할 문자열.
+         * @param	{String}	direction	진행될 방향(left, right). 기본값 right
+         * @param	{Boolean}	repeat		반복적용 설정. 기본값 false
+         * @return	{String}
+         */
+        insert: function ( target, addIndex, addText, direction, repeat ) {
+            direction = direction || 'right';
+            repeat = (repeat)? 'g' : '';
+            var value = String(target),
+                reg = new RegExp( '.{' + addIndex + '}', repeat );
+    
+            this.is( value, 'string.insert() ' + MSG_NOT_STRING );
+    
+            if (direction == 'right') {
+                value = value.replace(reg, function (str) {
+                    return str + addText;
+                });
+                var lastIdx = value.length - 1;
+                return repeat && addText == value.charAt(lastIdx) ? value.substr(0, lastIdx) : value;
+            } else {
+                value = this.strrev( value );
+                value = value.replace( reg, function ( str ) {
+                    return str + addText;
+                });
+                value = this.strrev( value );
+                return repeat && addText == value.charAt(0) ? value.substring(1) : value;
+            }
+        },
+    
+        /**
+         * 숫자 "0"을 삽입하여 자리수를 맞춰 문자열을 반환.
+         * 예)trace( .format(5, 3) );//005
+         * @param	{String}	target		대상 문자열
+         * @param	{int}		cipher		자리수 설정.
+         * @param	{String}	fillStr		채워질 문자열, 기본 '0'
+         * @return	{String}
+         */
+        format: function ( target, cipher, fillStr ) {
+            fillStr = fillStr || '0';
+            var str = String(target),
+                result = '', addNum = cipher - str.length, i;
+    
+            this.is( str, 'string.format() ' + MSG_NOT_STRING );
+    
+            for ( i = 0; i < addNum; ++i ) {
+                result += fillStr;
+            }
+            return result += str;
+        },
+    
+        /**
+         * 카멜표기법을 하이픈표기법으로 변환하여 반환.
+         * @param	{String}	target		대상 문자열
+         * @return	{String}	fontSize -> font-size
+         */
+        hyphenCase: function ( target ) {
+            target = String(target);
+            this.is( target, 'string.hyphenCase() ' + MSG_NOT_STRING );
+            return target.replace( /[A-Z]/g, function ( val ) {
+                return '-' + val.toLowerCase();
+            });
+        },
+    
+        /**
+         * 하이픈표기법을 카멜표기법으로 변환하여 반환.
+         * @param	{String}	target		대상 문자열
+         * @return	{String}	font-size -> fontSize
+         */
+        camelCase: function ( target ) {
+            target = String(target);
+            this.is( target, 'string.camelCase() ' + MSG_NOT_STRING );
+            return target.replace(/-\b([a-z])/g, function (str) {
+                return str.charAt(1).toUpperCase();
+            });
+        },
+    
+        /**
+         * 단어의 첫글짜를 대문자로 변환
+         * @param	{String}	target		대상 문자열
+         * @return	{String}
+         */
+        capitalize: function ( target ) {
+            target = String(target);
+            this.is( target, 'string.capitalize() ' + MSG_NOT_STRING );
+            return target.replace(/\b([a-z])/g, function (str) {
+                return str.toUpperCase();
+            });
+        },
+    
+        /**
+         * 해당문자열에 해당 언어가 포함되어있는지 체크<br>
+         * 예).isLanguage("string", "en", "number")
+         * @param	{String}		target		대상 문자열
+         * @param	{String...}		languages	영문(en),한글(ko),숫자(number),특수문자(해당문자입력)
+         * @return	{Boolean}
+         */
+        isLanguage: function () {
+            var target = arguments[0],
+                regStr = '', langNum = arguments.length, i;
+    
+            target = String(target);
+            this.is( target, 'string.isLanguage() ' + MSG_NOT_STRING );
+    
+            for (i = 1; i < langNum; ++i) {
+                switch( arguments[i] ) {
+                    case 'en':
+                        regStr += 'A-Za-z';
+                        break;
+                    case 'ko':
+                        regStr += 'ㄱ-ㅣ가-힣';
+                        break;
+                    case 'number':
+                        regStr += '0-9';
+                        break;
+                    default:
+                        regStr += arguments[i].replace( /[(){}[\]*+?.\\^$|,\-]/g, '\\$&' );
+                        break;
+                }
+            }
+            return new RegExp( '[' + regStr + ']' ).test( target );
+        },
+    
+        /**
+         * 해당 문자열에 일치하는 완전체 단어가 있는지 검사
+         * 예)	.isWholeWord( "Hello World", "Hello" ); // true
+         *		.isWholeWord( "Hello World", "He" ); // false
+         * @param	{String}		target		대상 문자열
+         * @param	{String, Array}	findStr		비교할 String or String Array, 문자열의 앞뒤로 공백이 들어가면 다른 문자열로 인식하여 false반환.
+         * @param	{String}		flags		대소문자 구별하지 않으려면 "i", 멀티라인 검색은 "m"
+         * @return	{Boolean}
+         */
+        isWholeWord: function ( target, findStr, flags ) {
+            target = String(target);
+            this.is( target, 'string.isWholeWord() ' + MSG_NOT_STRING );
+    
+            var num, i, strs, result = false;
+    
+            if ( $B.array.is(findStr) ) {
+                strs = findStr;
+                num = strs.length;
+            } else {
+                num = 1;
+                strs = [findStr];
+            }
+    
+            for ( i = 0; i < num; ++i ) {
+                var str = strs[i].replace( /[(){}[\]*+?.\\^$|,\-]/g, '\\$&' );
+                result = new RegExp( '(?:\\s|^)' + str + '(?:\\s|$)', flags || '' ).test( target );
+                if ( !result ) return false;
+            }
+    
+            return result;
+        },
+    
+        /**
+         * 문자열(수치)을 3자리 숫자 단위표기법으로 반환.
+         * @param	{String, Number}		target		대상 문자열
+         * @return	{String}
+         */
+        numberFormat: function ( target ) {
+            var str = String(target),
+                minus = '',
+                temps = [], result = '';
+    
+            this.is( str, 'string.numberFormat() ' + MSG_NOT_STRING );
+    
+            if (str.charAt(0) == '-') {
+                minus = '-';
+                str = str.substring(1);
+            }
+    
+            temps = str.split('.');
+            result = minus + $B.string.insert( temps[0], 3, ',', 'left', true );
+    
+            return ( temps[1] )? result += '.' + temps[1] : result;
+        },
+    
+        /**
+         * 대상 문자열에서 html태그를 모두 삭제
+         * @param	{String}		target		대상 문자열
+         * @return	{String}
+         */
+        removeTags: function ( target ) {
+            target = String(target);
+            this.is( target, 'string.removeTags() ' + MSG_NOT_STRING );
+            return target.replace(/<[^>]+>/g, '');
+        },
+    
+        /**
+         * 문자열을 뒤집어 반환.('abc' to 'cba')
+         * @param	{String}	target		대상 문자열
+         * @return	{String}
+         */
+        strrev: function ( target ) {
+            target = String(target);
+            this.is( target, 'string.strrev() ' + MSG_NOT_STRING );
+            return target.split('').reverse().join('');
+        },
+    
+        /**
+         * 문자열의 앞뒤 white space삭제(탭, 띄어쓰기, \n, \r)
+         * @param	{String}	target		대상 문자열
+         * @return	{String}
+         */
+        trim: function ( target ) {
+            target = String(target);
+            this.is( target, 'string.trim() ' + MSG_NOT_STRING );
+            return ( target )? target.replace(/^\s+/, '').replace(/\s+$/, '') : '';
+        },
+    
+        /**
+         * 16자의 고유 문자열 반환. (해당 화면에서 절대 유일값, alphabet + int 조합)
+         * @return	{String}
+         */
+        unique: function () {
+            var random = Math.random(),
+                randomStr = random.toString( 32 ).substr( 2 ),
+                alphabet = Math.round( Math.random() * 21 + 10 ).toString( 32 );//a~v
+    
+            if ( randomStr.length < 2 ) randomStr = 'i' + alphabet + 'x' + alphabet + 'b' + alphabet + 'a' + alphabet + 'n' + alphabet + 'd';
+            var result = alphabet + __keyCount.toString( 32 ) + randomStr + randomStr + randomStr + randomStr;
+            __keyCount++;
+            return result.substr( 0, 15 ) + alphabet;
+        }
+    };
+
+
+    // ############################################################################ //
+    // ############################################################################ //
+    // 									object										//
+    // ############################################################################ //
+    // ############################################################################ //
+    
+    ixBand.object = {
+        /**
+         * 해당 값이 Object인지 여부 반환 (배열은 false)
+         * @param	{Object}	obj
+         * @returns {Boolean}
+         */
+        is: function ( obj, errorMsg ) {
+            var result = Object.prototype.toString.call( obj ) === '[object Object]';
+    
+            if ( errorMsg && !result ) {
+                warning( errorMsg );
+                return false;
+            } else {
+                return result;
+            }
+        },
+    
+        /**
+         * 순환 참조가 되지 않도록 Object 복사본을 반환.
+         * 주의) instance는 제대로 복사되지 않는다.
+         * @param	{Object}	value
+         * @returns {Object}
+         */
+        clone: deepClone,
+    
+        /**
+         * 두개의 Object를 확장 해서 (합쳐) 반환
+         * @param {Object}	fromObj
+         * @param {Object}	toObj	fromObj 와 같은 key를 가지고 있으면 toObj의 값이 우선이 된다.
+         * @param {Boolean}	circularReference
+         * 	순환참조를 유지할지 설정 (기본값 true)
+         * 	순화참조를 하지 않을경우 object.clone()으로 복사된다.
+         */
+        extend: function ( fromObj, toObj, circularReference ) {
+            circularReference = typeof circularReference === 'boolean' ? circularReference : true;
+    
+            var result = fromObj;
+    
+            if ( !circularReference ) {
+                result = deepClone( fromObj );
+                toObj = deepClone( toObj );
+            }
+    
+            for ( var key in toObj ) {
+                result[key] = toObj[key];
+            }
+    
+            return result;
+        },
+    
+        /**
+         * Object를 배열로 변환하여 반환
+         * @param   {Object}   obj
+         * @param   {String}   target  ("value", "key") 기본값 "value"
+         * @returns {Array}
+         */
+        toArray: function ( obj, target ) {
+            var result = [];
+            for ( var n in obj ) {
+                result.push( target === 'key' ? n : obj[n] );
+            }
+    
+            return result;
+        },
+    
+        /**
+         * Object의 key를 value로 value는 key로 변환하여 반환
+         * @param   {Object}   obj
+         * @returns {Object}
+         */
+        replaceKeyValue: function ( obj ) {
+            var result = {};
+            for ( var key in obj ) {
+                var value = obj[key];
+                result[value] = key;
+            }
+    
+            return result;
+        },
+    
+        length: function ( obj ) {
+            var count = 0;
+    
+            for ( var n in obj ) {
+                count++;
+            }
+    
+            return count;
+        }
+    };
+
+
+    // ############################################################################ //
+    // ############################################################################ //
+    // 									style										//
+    // ############################################################################ //
+    // ############################################################################ //
+    
+    ixBand.style = {
+        /**
+         * 인라인스타일을 설정하거나 반환.
+         * @param	{Element}	el			대상 Element
+         * @param	{String}	propStr		"width:100px; z-index:2" 표기법, 설정하지 않으면 cssText반환,
+         */
+        inline: function ( el, propStr ) {
+            var css = (el && el.style)? el.style.cssText : '';
+    
+            //setter
+            if ( propStr ) {
+                propStr = $B.string.trim( propStr );
+    
+                if ( css && css.charAt( css.length-1 ) != ';' ) css += ';';//Opera에서는 css 속성끝에 ";"처리를 하지 않으면 에러가 난다.
+                el.style.cssText = css + ' ' + propStr;
+                //getter
+            } else {
+                return css;
+            }
+        },
+    
+        /**
+         * 지정된 ComputedStyle을 보정없이 반환, 읽기전용
+         * Style이 100%와 같은 형식으로 지정이 되어있다면, IE와 FF브라우져에서 다른값을 반환할수있다(IE=100%, FF=현재사이즈px).
+         * 사파리, 크롬, z-index를 구할려면, position이 설정되어 있어야 한다. 아니면 'auto'라고 반환.
+         * @param	{Element}	el			대상 Element
+         * @param	{String}	property	기본값 all, z-index표기법 사용
+         * @return	{Style, StyleValue}
+         */
+        current: function ( el, property ) {
+            if ( window.getComputedStyle ) {
+                this.current = function ( el, property ) {
+                    var current = window.getComputedStyle( el, null );
+                    if ( !current ) return;
+    
+                    return ( property )? current.getPropertyValue( property ) : current;
+                };
+    
+                //IE6~8
+            } else if ( document.documentElement.currentStyle ) {
+                this.current = function ( el, property ) {
+                    var current = el.currentStyle;
+                    if ( !current ) return;
+    
+                    return ( property )? current[$B.string.camelCase(property)] : current;
+                };
+            }
+    
+            return this.current( el, property );
+        },
+    
+        /**
+         * 지정된 ComputedStyle을 보정(pixel)하여 반환 (IE6~8 전용), 읽기전용
+         * 사파리, 크롬, z-index를 구할려면, position이 설정되어 있어야 한다. 아니면 'auto'라고 반환.
+         * @param	{Element}	el			대상 Element
+         * @param	{String}	property	기본값 all, z-index표기법 사용
+         * @return	{Style, StyleValue}
+         */
+        computed: function ( el, property ) {
+            var left, rs, rsLeft,
+                result = $B.style.current( el, property ),
+                style = el.style,
+                name = $B.string.camelCase( property );
+    
+            if ( result == null && style && style[name] ) result = style[name];
+    
+            var core_pnum = /[+-]?(?:\d*\.|)\d+(?:[eE][+-]?\d+|)/.source,
+                rposition = /^(top|right|bottom|left)$/,
+                rnumnonpx = new RegExp( '^(' + core_pnum + ')(?!px)[a-z%]+$', 'i' );
+    
+            if ( rnumnonpx.test( result ) && !rposition.test( name ) ) {
+                left = style.left;
+                rs = el.runtimeStyle;
+                rsLeft = rs && rs.left;
+    
+                if ( rsLeft ) rs.left = el.currentStyle.left;
+    
+                style.left = (name === 'fontSize')? '1em' : result;
+                result = style.pixelLeft + 'px';
+    
+                style.left = left;
+                if ( rsLeft ) rs.left = rsLeft;
+            }
+    
+            if ( result == 'auto' && name == 'width' || name == 'height' ) {
+                result = $B( el ).rect()[name] + 'px';
+            }
+    
+            //color값에서 keyword를 16진수로 변환
+            if ( /color/i.test(property) ) {
+                var colorKey = $B.color.keyword( result );
+                if ( colorKey )  result = colorKey;
+            }
+    
+            return result;
+        },
+    
+        /**
+         * opacity(투명도)를 설정하거나 반환, IE6~8 크로스브라우징을 위해서 사용, ie6에서는 png핵을 이용한 png에만 적용가능
+         * @param	{Element}	el			대상 Element
+         * @param	{Number}	percent	0~1
+         */
+        opacity: function ( el, percent ) {
+            if ( $B.ua.DOC_MODE_IE9_LT ) {
+                this.opacity = function ( el, percent ) {
+                    //setter
+                    if ( percent || percent == 0 ) {
+                        percent = Number(percent);
+                        //el.style.opacity = percent;
+    
+                        var ralpha = /alpha\([^)]*\)/i,
+                            style = el.style,
+                            cStyle = el.currentStyle,
+                            opacity = ( typeof percent === 'number' )? 'alpha(opacity=' + (percent * 100) + ')' : '',
+                            filter = cStyle && cStyle.filter || style.filter || '', css = '';
+    
+                        //style.zoom = 1;
+                        if ( percent >= 1 && $B.string.trim( filter.replace( ralpha, '' ) ) === '' ) {
+                            style.removeAttribute( 'filter' );
+                            if ( cStyle && !cStyle.filter ) return;
+                        }
+    
+                        //style.filter = ralpha.test( filter )? filter.replace( ralpha, opacity ) : filter + ' ' + opacity;
+                        css = ralpha.test( filter )? filter.replace( ralpha, opacity ) : filter + ' ' + opacity;
+                        $B.style.inline( el, 'zoom: 1; filter:' + css );
+    
+                        //getter
+                    } else {
+                        var ropacity = /opacity\s*=\s*([^)]*)/;
+                        return ropacity.test( (el.currentStyle ? el.currentStyle.filter : el.style.filter) || '' ) ?
+                        0.01 * parseFloat( RegExp.$1 ) : 1;
+                    }
+                };
+            } else {
+                this.opacity = function ( el, percent ) {
+                    //setter
+                    if ( percent || percent == 0 ) {
+                        el.style.opacity = percent;
+                        //getter
+                    } else {
+                        return $B.style.current( el, 'opacity' );
+                    }
+                };
+            }
+    
+            return this.opacity( el, percent );
+        },
+    
+        /**
+         * Style Properties를 {propName: {name, value, unit}} 형식으로 파싱해서 반환
+         * @param	{String}		target		대상 스타일 문자열, 예)"width: 100px; height: 200px;"
+         * @return	{Object}
+         */
+        parse: function ( target ) {
+            var props = {};
+            //String(target).replace(/([a-zA-Z\-]+)\s*?:\s*?([#\w\.\-\,\s\/\?\&\:\=\(\)\%]+);?/g, function ( str, n, v ) {
+            String(target).replace(/([a-zA-Z\-]+)\s*?:\s*?([#\w\-.,\s\/?&:=\(\)%]+);?/g, function ( str, n, v ) {
+                var obj = $B.style.parseValue( v );
+                props[ $B.string.camelCase(n) ] = {name: n, value: obj.value, unit: obj.unit};
+            });
+            return props;
+        },
+    
+        /**
+         * Style Property Value를 Object(value, unit)으로 파싱해서 반환
+         * @param	{String}		target		대상 스타일값 문자열, 예)"100px"
+         * @return	{Object}
+         */
+        parseValue: function ( target ) {
+            var result = {},
+                val = String( target );
+    
+            if ( val && val.indexOf('(') > -1 ) {
+                result = {value: $B.string.trim(val), unit: ''};
+            } else {
+                val.replace(/\s*?([-\d\.]+|#[\da-fA-F]+)([a-zA-Z\%]+)?/, function (str, v, u) {
+                    result = {value: $B.string.trim(v), unit: u || ''};
+                });
+            }
+            return result;
+        }
+    };
+
+
+    // ############################################################################ //
+    // ############################################################################ //
     // 									utils										//
     // ############################################################################ //
     // ############################################################################ //
@@ -3081,10 +4284,10 @@
             return c*t/d + b;
         },
         yoyo: function(t, b, c, d) {
-            return this.quadOut(t, b, c, d/2);
+            return ixBand.utils.ease.quadOut(t, b, c, d/2);
         },
         bounceIn: function(t, b, c, d) {
-            return c - this.bounceOut(d-t, 0, c, d) + b;
+            return c - ixBand.utils.ease.bounceOut(d-t, 0, c, d) + b;
         },
         bounceOut: function(t, b, c, d) {
             if((t/=d) <(1/2.75)) {
@@ -3098,8 +4301,8 @@
             }
         },
         bounceInOut: function(t, b, c, d) {
-            if(t < d/2) return this.bounceIn(t*2, 0, c, d) * .5 + b;
-            else return this.bounceOut(t*2-d, 0, c, d) * .5 + c*.5 + b;
+            if(t < d/2) return ixBand.utils.ease.bounceIn(t*2, 0, c, d) * .5 + b;
+            else return ixBand.utils.ease.bounceOut(t*2-d, 0, c, d) * .5 + c*.5 + b;
         },
         cubicIn: function(t, b, c, d) {
             return c*(t/=d)*t*t + b;
@@ -3545,7 +4748,7 @@
             this._begin = begin;
             this._finish = finish;
             this._option = option || {};
-            this._ease = this._option || $B.utils.ease.quadOut;
+            this._ease = this._option.ease || $B.utils.ease.quadOut;
             this._data = ( $B.isEmpty(data) )? null : data;
     
             this._finishValue = 0;
@@ -3684,11 +4887,15 @@
         /**
          * FPS설정
          * @param	{Int}	frame	기본 fps PC : 60, Mobile : 30
-         * @return	this
+         * @return	{Int, this}
          */
         fps: function ( frame ) {
-            this._setFPS( frame );
-            return this;
+            if ( $B.isNumber(frame) ) {
+                this._setFPS( frame );
+                return this;
+            } else {
+                return this._fps;
+            }
         },
     
         // ===============	Private Methods =============== //
@@ -3706,7 +4913,7 @@
                     this.dispatch( 'tween', {target: this, currentValue: this._cValue, progress: this._progress, percent: this._percent, currentCount: this._currentCount, totalCount: this._totalCount, data: this._data} );
                     this.dispatch( 'complete', {target: this, currentValue: this._cValue, progress: this._progress, percent: this._percent, currentCount: this._currentCount, totalCount: this._totalCount, data: this._data});
                 } else {
-                    if ( !this._interval ) this._interval = setInterval( intervalHandler, this._loopTime );
+                    if ( !this._interval ) this._interval = setInterval( this._intervalHandler, this._loopTime );
                 }
             }, this);
     
@@ -3770,7 +4977,7 @@
         _setSeekValue: function ( per ) {
             this._seekCount = Math.round( this._totalCount * per );
     
-            if ( this._seekCount > _currentCount ) {
+            if ( this._seekCount > this._currentCount ) {
                 this._forward = true;
             } else if ( this._seekCount < this._currentCount ) {
                 this._forward = false;
@@ -3817,10 +5024,13 @@
      * @param	{Object}			option			ease: ixBand.utils.ease 선택, 추가 하여 사용
      * @param	{Object}			data			이벤트핸들러에서 전달받을수 있다. e.data
      */
-    ixBand.utils.TweenCSS = $B.utils.TweenCore.extend({
+    ixBand.utils.TweenCSS = $B.Class.extend({
         initialize: function ( target, duration, begin_props, finish_props, option, data ) {
-            this._tweenEventPool = {};
             this._target = $B( target ).element();
+            this._duration = duration;
+            this._option = option;
+            this._data = data;
+    
             this._b_props = [];
             this._f_props = [];
             this._propLength = 0;
@@ -3828,33 +5038,79 @@
             //스타일속성, 값, 단위 분리
             this.addProp( begin_props, finish_props );
             this._addEvents();
-            $B.utils.TweenCore.prototype.initialize.call( this, duration, 0, 1, option, data );
             return this;
         },
     
         // ===============	Public Methods =============== //
     
-        addListener: function ( type, handler, core ) {
-            if ( core == 'core' ) {
-                $B.utils.TweenCore.prototype.addListener.call( this, type, handler );
+        /** 해당 초만큼 지연시킨후 다음 Method실행, 한명령줄에 하나의 delay만 사용한다.
+         * @param	{Number}	time		초단위, 예) 0.5초
+         * @param	{Function}	callback	delay가 끝나는 이벤트 전달
+         * @return	this
+         */
+        delay: function ( time, callback ) {
+            this._tweenCore.delay( time, callback );
+            return this;
+        },
+        /** 시작(리셋후)
+         * @return	this
+         */
+        start: function () {
+            this._tweenCore.start();
+            return this;
+        },
+        /** 정지
+         * @return	this
+         */
+        stop: function () {
+            this._tweenCore.stop();
+            return this;
+        },
+        /** Stop후 0
+         * @return	this
+         */
+        reset: function () {
+            this._tweenCore.reset();
+            return this;
+        },
+        /**
+         * 해당탐색 구간으로 Tween
+         * @param	{Number}	progress 0~1
+         * @return	this
+         */
+        seek: function ( progress ) {
+            this._tweenCore.seek( progress );
+            return this;
+        },
+        /**
+         * 해당탐색 구간으로 즉시 이동
+         * @param	{Number}	progress 0~1
+         * @return	this
+         */
+        seekTo: function ( progress ) {
+            this._tweenCore.seekTo( progress );
+            return this;
+        },
+        /** progress가 0이면 1, 1이면 0으로 Tween
+         * @return	this
+         */
+        toggle: function () {
+            this._tweenCore.toggle();
+            return this;
+        },
+    
+        /**
+         * FPS설정
+         * @param	{Int}	frame	기본 fps PC : 60, Mobile : 30
+         * @return	{Int, this}
+         */
+        fps: function ( frame ) {
+            if ( $B.isNumber(frame) ) {
+                this._tweenCore.fps( frame );
+                return this;
             } else {
-                $B.utils.TweenCore.prototype.addListener.call( this, type, handler, this._tweenEventPool );
+                return this._tweenCore.fps();
             }
-            return this;
-        },
-    
-        removeListener: function ( type, handler ) {
-            $B.utils.TweenCore.prototype.removeListener.call( this, type, handler, this._tweenEventPool );
-            return this;
-        },
-    
-        hasListener: function ( type, handler ) {
-            return $B.utils.TweenCore.prototype.hasListener.call( this, type, handler, this._tweenEventPool );
-        },
-    
-        dispatch: function ( type, datas ) {
-            $B.utils.TweenCore.prototype.dispatch.call( this, type, datas, this._tweenEventPool );
-            return this;
         },
     
         /**
@@ -3954,9 +5210,10 @@
                 this.dispatch( e.type, e );
             }, this);
     
-            this.addListener( 'tween', this._tweenHandler, 'core' );
-            this.addListener( 'complete', this._tweenHandler, 'core' );
-            this.addListener( 'seekcomplete', this._tweenHandler, 'core' );
+            this._tweenCore = new $B.utils.TweenCore( this._duration, 0, 1, this._option, this._data )
+                    .addListener( 'tween', this._tweenHandler )
+                    .addListener( 'complete', this._tweenHandler )
+                    .addListener( 'seekcomplete', this._tweenHandler );
         },
     
         //스타일속성이 있는지 체크후 index반환, 없을시 -1
@@ -4010,7 +5267,7 @@
             }
     
             if ( value == 'transparent' || value == 'auto' || value == undefined ) {
-                throw new Error('[ixBand] TweenCSS의 대상의 Style "' + get_prop.name + '"가 설정되어 있지않아 Tween 실행불가!');
+                throw new Error( '[ixBand] TweenCSS의 대상의 Style "' + get_prop.name + '"가 설정되어 있지않아 Tween 실행불가!' );
             }
     
             if ( typeof value === 'number' ) value = String(value);
@@ -4024,452 +5281,6 @@
     }, '$B.utils.TweenCSS');
 
 
-    // ############################################################################ //
-    // ############################################################################ //
-    // 									event										//
-    // ############################################################################ //
-    // ############################################################################ //
-    
-    /**
-     * 함수를 올바른 this 키워드와 함께 호출하기 위해서 클로저가 사용된다.<br>
-     * 이런 종류의 클로저는 IE에서 메모리 누수를 발생시킬 수 있기 때문에, onunload 이벤트를 등록하고 이시점에 등록된 모든 이벤트를 삭제한다.<br>
-     * Event Properties : type, target, currentTarget, relatedTarget, eventPhase, clientX, clientY, screenX, screenY, shiftKey, charCode, delta:마우스휠이벤트에서 발생, stopPropagation(), preventDefault()<br>
-     */
-    ixBand.event = (function () {
-        //EventType의 크로스부라우징 처리
-        var CrossType = {
-            mousewheel: 'mousewheel',
-            transitionend: 'transitionend'
-        };
-    
-        if ( $B.ua.WEBKIT ) {
-            CrossType.transitionend = 'webkitTransitionEnd';
-        } else if ( $B.ua.OPERA ) {
-            CrossType.transitionend = 'otransitionend';
-        } else if ( $B.ua.FIREFOX ) {
-            CrossType.mousewheel = 'DOMMouseScroll';
-        }
-    
-        var _eventCount = 0,
-            _hasDomEvent = ( document.addEventListener )? true : false,
-            _hasIEEvent = ( document.attachEvent )? true : false;
-    
-        function getEventID () {
-            return 'ixe' + new Date().getTime() + _eventCount++;
-        }
-    
-        function removeAllHandlers (e) {
-            var _this = this, id;
-    
-            for ( id in _this._ix_allEvents_ ) {
-                var h = _this._ix_allEvents_[id];
-                h.el.detachEvent( 'on' + h.type, h.wrapHandler );
-                delete _this._ix_allEvents_[id];
-            }
-        }
-    
-        //대상의 모든 이벤트 삭제
-        function removeAllEvent ( el, clone ) {
-            if ( el._ix_eventIds_ ) {
-                var ids = el._ix_eventIds_,
-                    eidNum = ids.length, i;
-    
-                for ( i = 0; i < eidNum; ++i ) {
-                    var id = ids[i],
-                        evt = window._ix_allEvents_[id],
-                        type = evt.type,
-                        matchEl = ( clone )? true: evt.el == el;
-    
-                    //삭제
-                    if ( matchEl ) {
-                        Evt._removeEventListener( el, type, evt.wrapHandler );
-    
-                        //창마다 하나식 있는 _ix_allEvents_ 객체에서 이벤트정보 삭제
-                        if ( !clone ) delete window._ix_allEvents_[id];
-                    }
-                }
-    
-                if ( !clone ) el._ix_eventIds_ = null;
-            }
-        }
-    
-        //크로스브라우징 이벤트 타입 반환
-        function getCrossType ( type ) {
-            var crossType = CrossType[type];
-            return crossType || type;
-        }
-    
-        //origin event type to cross event type
-        function originToCrossType ( type ) {
-            if ( type === 'DOMMouseScroll' ) {
-                type = 'mousewheel';
-            } else if ( type === 'webkitTransitionEnd' ) {
-                type = 'transitionend';
-            } else if ( type === 'otransitionend' ) {
-                type = 'transitionend';
-            }
-    
-            return type;
-        }
-    
-    
-        // ==================== Public Methods ==================== //
-        var Evt = {
-            add: null,
-    
-            find: function ( el, type, handler, isAll ) {
-                var eventIds = el._ix_eventIds_;
-                //등록된 _ix_eventIds_가 없으면 -1반환
-                if ( !eventIds ) return -1;
-    
-                var hNum = eventIds.length - 1,
-                    alls = [],
-                    i;
-    
-                type = getCrossType( type );
-    
-                //가장최근에 등록된 이벤트가 제거될 가능성이 높기때문에 루프를 뒤에서 부터 돈다.
-                for ( i = hNum; i >= 0; --i ) {
-                    var hId = eventIds[i],
-                        evt = window._ix_allEvents_[hId];
-    
-                    if ( isAll ) {
-                        if ( evt.type === type ) {
-                            alls.push( i );
-                        }
-                    } else {
-                        if ( evt.type === type && evt.handler === handler ) {
-                            return i;
-                            break;
-                        }
-                    }
-                }
-    
-                if ( isAll ) {
-                    return alls;
-                } else {
-                    return -1;
-                }
-            },
-    
-            trigger: function ( el, type, data ) {
-                if ( typeof document.dispatchEvent === 'function' ) {
-                    // dispatch for firefox + others
-                    var evt = document.createEvent( 'HTMLEvents' );
-                    evt.initEvent( type, true, true ); // type,bubbling,cancelable
-                    el.dispatchEvent( evt );
-                } else if ( document.createEventObject ) {
-                    // dispatch for IE
-                    try {
-                        var evtObj = document.createEventObject();
-                        el.fireEvent( 'on' + type, evtObj );
-                    } catch (e) {
-                        //CustomEvent
-                        var evts = this.find( el, type, null, true ),
-                            evtLength = evts.length;
-    
-                        for ( var i = 0; i < evtLength; ++i ) {
-                            var idx = evts[i],
-                                id = el._ix_eventIds_[idx],
-                                evt = window._ix_allEvents_[id];
-    
-                            evt.wrapHandler.call( e.el, {
-                                type: evt.type,
-                                currentTarget: el,
-                                data: data || evt.customData
-                            });
-                        }
-                    }
-                }
-            },
-    
-            remove: function ( el, type, handler ) {
-                //el._ix_eventIds_[] 배열에서 찾는다.
-                var i = this.find( el, type, handler );
-                if ( i == -1 ) return;
-    
-                var id = el._ix_eventIds_[i],
-                    h = window._ix_allEvents_[id];
-    
-                this._removeEventListener( el, type, h.wrapHandler );
-    
-                //배열에서 el 제거
-                el._ix_eventIds_.splice( i, 1 );
-                //창마다 하나식 있는 _ix_allEvents_ 객체에서 이벤트정보 삭제
-                delete window._ix_allEvents_[id];
-            },
-    
-            //대상 개체의 해당 타입의 모든 이벤트 삭제
-            removeTypeAll: function ( el, type ) {
-                var eventIds = el._ix_eventIds_;
-                //등록된 _ix_eventIds_가 없으면 정지.
-                if ( !eventIds ) return;
-    
-                //type = getCrossType( type );
-    
-                //가장최근에 등록된 이벤트가 제거될 가능성이 높기때문에 루프를 뒤에서 부터 돈다.
-                for ( var i = eventIds.length - 1; i >= 0; --i ) {
-                    var id = eventIds[i],
-                        evt = window._ix_allEvents_[id];
-    
-                    if ( evt.type == type ) {
-                        this._removeEventListener( el, type, evt.wrapHandler );
-                        //배열에서 el 제거
-                        el._ix_eventIds_.splice( i, 1 );
-                        //창마다 하나식 있는 _ix_allEvents_ 객체에서 이벤트정보 삭제
-                        delete window._ix_allEvents_[id];
-                    }
-                }
-            },
-    
-            //대상 객체의 이벤트 모두 삭제
-            removeAll: function ( els, childRemove, clone ) {
-                var i, elNum = els.length;
-                for ( i = 0; i < elNum; ++i ) {
-                    var el = els[i];
-    
-                    removeAllEvent( el, clone );
-    
-                    //자식 이벤트 삭제
-                    if ( childRemove ) {
-                        var children = el.children;
-    
-                        if ( children.length > 0 ) {
-                            this.removeAll( children, true, clone );
-                        }
-                    }
-                }
-            },
-    
-            //removeEventListener 크로스브라우징 처리
-            _removeEventListener: function ( el, type, handler ) {
-                if ( _hasDomEvent ) {
-                    this._removeEventListener = function ( el, type, handler ) {
-                        el.removeEventListener( getCrossType(type), handler, false );
-                    };
-                } else if ( _hasIEEvent ) {
-                    this._removeEventListener = function ( el, type, handler ) {
-                        el.detachEvent( 'on' + type, handler );
-                    };
-                }
-                this._removeEventListener( el, type, handler );
-            },
-    
-            /**
-             * 파폭에서 지원하지 않는 event.offsetX 크로스브라우징 해결하여 반환.
-             * @param	{Object}	event	이벤트 핸들러의 이벤트.
-             * @return	{Number}
-             */
-            offsetX: function ( evt ) {
-                if ( !$B.ua.FIREFOX ) {
-                    this.offsetX = function ( evt ) { return evt.offsetX; };
-                    //파폭
-                } else {
-                    this.offsetX = function ( evt ) { return evt.layerX - evt.currentTarget.offsetLeft; };
-                }
-                return this.offsetX( evt );
-            },
-            /**
-             * 파폭에서 지원하지 않는 event.offsetY 크로스브라우징 해결하여 반환.
-             * @param	{Object}	event	이벤트 핸들러의 이벤트.
-             * @return	{Number}
-             */
-            offsetY: function ( evt ) {
-                if ( !$B.ua.FIREFOX ) {
-                    this.offsetY = function ( evt ) { return evt.offsetY; };
-                    //파폭
-                } else {
-                    this.offsetY = function ( evt ) { return evt.layerY - evt.currentTarget.offsetTop; };
-                }
-                return this.offsetY( evt );
-            },
-    
-            /**
-             * IE9 미만에서 지원하지 않는 event.pageX 크로스브라우징 해결하여 반환.
-             * @param	{Object}	event	이벤트 핸들러의 이벤트.
-             * @return	{Number}
-             */
-            pageX: function ( evt ) {
-                if ( $B.ua.DOC_MODE_IE9_LT ) {
-                    this.pageX = function ( evt ) {
-                        var eDoc = evt.target.ownerDocument || document,
-                            docEl = eDoc.documentElement,
-                            body = eDoc.body;
-    
-                        return evt.clientX + ( docEl && docEl.scrollLeft || body && body.scrollLeft || 0 );
-                    };
-                } else {
-                    this.pageX = function ( evt ) { return evt.pageX; };
-                }
-                return this.pageX( evt );
-            },
-            /**
-             * IE9 미만에서 지원하지 않는 event.pageY 크로스브라우징 해결하여 반환.
-             * @param	{Object}	event	이벤트 핸들러의 이벤트.
-             * @return	{Number}
-             */
-            pageY: function ( evt ) {
-                if ( $B.ua.DOC_MODE_IE9_LT ) {
-                    this.pageY = function ( evt ) {
-                        var eDoc = evt.target.ownerDocument || document,
-                            docEl = eDoc.documentElement,
-                            body = eDoc.body;
-    
-                        return evt.clientY + ( docEl && docEl.scrollTop || body && body.scrollTop || 0 );
-                    };
-                } else {
-                    this.pageY = function ( evt ) { return evt.pageY; };
-                }
-                return this.pageY( evt );
-            }
-        };
-    
-        // ==================== DOM Browser ==================== //
-    
-        if ( _hasDomEvent ) {
-            Evt.add = function ( el, type, handler, data ) {
-                if ( this.find( el, type, handler ) != -1 ) return;
-    
-                //중첩된 함수를 정의하고 이 함수를 handler 함수 대신 등록한다.
-                var wrapHandler = function (e) {
-                    var evt = {
-                        _event: e,			//실제 이벤트 객체
-                        type: originToCrossType( e.type ),
-                        target: e.target,
-                        currentTarget: e.currentTarget,
-                        relatedTarget: e.relatedTarget,
-                        eventPhase: e.eventPhase,
-                        //마우스 좌표
-                        layerX: e.layerX, layerY: e.layerX,//파폭
-                        clientX: e.clientX, clientY: e.clientY,
-                        pageX: e.pageX, pageY: e.pageY,
-                        offsetX: e.offsetX, offsetY: e.offsetY,
-                        screenX: e.screenX, screenY: e.screenY,
-                        shiftKey: e.shiftKey, charCode: e.charCode,
-                        altKey: e.altKey,
-                        ctrlKey: e.ctrlKey,
-                        //이벤트 관리 함수
-                        stopPropagation: function () { if (this._event) this._event.stopPropagation(); },
-                        preventDefault: function () { if (this._event) this._event.preventDefault(); },
-                        //mousewheel
-                        delta: 0,
-                        data: e.customData || data
-                    };
-    
-                    /*
-                     mousewheel delta
-                     trace( 'detail:' + e.detail );//FF, Oprera
-                     trace( 'wheelDelta:' + e.wheelDelta );//IE, Chrome, Safari, Opera
-                     */
-                    if ( e.wheelDelta ) {
-                        evt.delta = e.wheelDelta / 120;
-                    } else if ( e.detail ) {
-                        evt.delta = -e.detail / 3;
-                    }
-    
-                    handler.call( el, evt );
-                };
-    
-                el.addEventListener( getCrossType(type), wrapHandler, false );
-    
-                var h = {
-                    el: el,
-                    type: type,
-                    handler: handler,
-                    wrapHandler: wrapHandler,
-                    customData: data
-                };
-    
-                var w = window,
-                    id = getEventID();
-    
-                if ( !w._ix_allEvents_ ) w._ix_allEvents_ = {};
-                w._ix_allEvents_[id] = h;
-    
-                if ( !el._ix_eventIds_ ) el._ix_eventIds_ = [];
-                el._ix_eventIds_.push(id);
-            };
-    
-            // ==================== IE6~8 Browser ==================== //
-    
-        } else if ( _hasIEEvent ) {
-            Evt.add = function ( el, type, handler, data ) {
-                if ( this.find( el, type, handler ) != -1 ) return;
-    
-                //중첩된 함수를 정의하고 이 함수를 handler 함수 대신 등록한다.
-                var wrapHandler = function (e) {
-                    if ( !e ) e = window.event;
-    
-                    var evt = {
-                        _event: e,				//실제 IE이벤트 객체
-                        type: e.type,
-                        target: e.srcElement,
-                        currentTarget: el,
-                        relatedTarget: e.fromElement? e.fromElement : e.toElement,
-                        eventPhase: ( e.srcElement == el )? 2 : 3,
-                        //마우스 좌표
-                        layerX: e.layerX, layerY: e.layerX,//파폭
-                        clientX: e.clientX, clientY: e.clientY,
-                        pageX: e.pageX, pageY: e.pageY,
-                        offsetX: e.offsetX, offsetY: e.offsetY,
-                        screenX: e.screenX, screenY: e.screenY,
-                        shiftKey: e.shiftKey, charCode: e.keyCode,
-                        altKey: e.altKey,
-                        ctrlKey: e.ctrlKey,
-                        //이벤트 관리 함수
-                        stopPropagation: function () { if (this._event) this._event.cancelBubble = true; },
-                        preventDefault: function () { if (this._event) this._event.returnValue = false; },
-                        //mousewheel
-                        delta: e.wheelDelta / 120,
-                        data: e.customData || data
-                    };
-    
-                    handler.call( el, evt );
-                };
-    
-                //이벤트 등록
-                el.attachEvent( 'on' + type, wrapHandler );
-    
-                var h = {
-                    el: el,
-                    type: type,
-                    handler: handler,
-                    wrapHandler: wrapHandler,
-                    customData: data
-                };
-    
-                var w = window,
-                    id = getEventID();
-    
-                if ( !w._ix_allEvents_ ) w._ix_allEvents_ = {};
-                w._ix_allEvents_[id] = h;
-    
-                if ( !el._ix_eventIds_ ) el._ix_eventIds_ = [];
-                el._ix_eventIds_.push(id);
-    
-                //창과 관련된 onunload 이벤트가 없으면 하나 등록.
-                if ( !w._ix_onunloadHandlerReg_ ) {
-                    w._ix_onunloadHandlerReg_ = true;
-                    w.attachEvent( 'onunload', removeAllHandlers );
-                }
-            };
-        }
-    
-    
-        // ============================================================== //
-        // =====================	CustomEvents	===================== //
-        // ============================================================== //
-    
-        /**
-         * CustomEvents 객체
-         * @return	{Function}
-         */
-        Evt.CustomEvents = CustomEvents;
-    
-        return Evt;
-    }());
-
-
     // ============================================================== //
     // =====================	TouchEvent		===================== //
     // ============================================================== //
@@ -4479,95 +5290,19 @@
      * @constructor
      * @param	{Element || Selector || jQuery}	target		이벤트 발생 대상
      */
-    ixBand.event.TouchEvent = function ( target ) {
-        var _this = this,
-            POINTER_TYPES = ['', '', 'touch', 'pen', 'mouse'];
+    ixBand.event.TouchEvent = $B.Class.extend({
+        POINTER_TYPES: ['', '', 'touch', 'pen', 'mouse'],
     
-        this._eventPool = {};
-        this._target = $B( target ).element();
-        this._eventId = 0;
-        this._touches = {};
-        this._isEndEvent = false;
+        initialize: function ( target ) {
+            this._target = $B( target ).element();
+            this._touches = {};
+            this._isEndEvent = false;
     
-        this._addTouch = function ( event ) {
-            //if ( event.pointerType == 'mouse' || event.pointerType == 4 ) return;
+            this._setEvents();
+        },
     
-            this._touches[event.pointerId] = {
-                target: event.target,
-                clientX: event.clientX,
-                clientY: event.clientY,
-                pageX: event.pageX,
-                pageY: event.pageY,
-                screenX: event.screenX,
-                screenY: event.screenY,
-                pointerType: this._getPointerType( event ) //IE only
-            };
-        };
+        // ===============	Public Methods =============== //
     
-        this._removeTouch = function ( event ) {
-            delete this._touches[event.pointerId];
-        };
-    
-        this._getPointerType = function ( event ) {
-            var result = 'touch', pointerType = event.pointerType;
-    
-            if ( typeof pointerType === 'string' ) {
-                result = pointerType;
-            } else if ( typeof pointerType === 'number' && pointerType > -1 && pointerType < 5 ) {
-                result = POINTER_TYPES[pointerType];
-            }
-    
-            return result;
-        };
-    
-        //크로스브라우징 TouchEvent Touches 반환
-        this._getTouches = function ( event ) {
-            var touches;
-    
-            if ( MS_POINTER ) {
-                touches = [];
-                for ( var n in this._touches ) {
-                    touches.push(this._touches[n]);
-                }
-            } else {
-                touches = event.touches;
-            }
-    
-            return touches;
-        };
-    
-        //크로스브라우징 이벤트 타입 반환
-        this._getCrossType = function ( type ) {
-            var crossType = CrossTouchEvent[type];
-            return crossType || type;
-        };
-    
-        //origin event type to cross event type
-        this._originToCrossType = function ( type ) {
-            if ( /pointerdown/i.test(type) ) {
-                type = 'touchstart';
-            } else if ( /pointermove/i.test(type) ) {
-                type = 'touchmove';
-            } else if ( /pointerup/i.test(type) ) {
-                type = 'touchend';
-            } else if ( /pointercancel/i.test(type) ) {
-                type = 'touchcancel';
-            }
-    
-            return type;
-        };
-    
-        this._removeEvent = function ( id, evtObj, useCapture ) {
-            this._target.removeEventListener( this._getCrossType(evtObj.type), evtObj.wrapHandler, useCapture || evtObj.useCapture );
-            delete this._eventPool[id];
-        };
-    
-        this._touchHandler = function (e) {
-            _this._removeTouch(e);
-        };
-    };
-    
-    ixBand.event.TouchEvent.prototype = {
         /**
          * 이벤트 등록
          * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
@@ -4582,8 +5317,6 @@
     
                 if ( this.hasListener(type, handler, useCapture) ) return this;
     
-                var _this = this;
-    
                 if ( MS_POINTER && !this._isEndEvent ) {
                     document.addEventListener( this._getCrossType('touchend'), this._touchHandler, false );
                     document.addEventListener( this._getCrossType('touchcancel'), this._touchHandler, false );
@@ -4591,12 +5324,12 @@
                 }
     
                 //중첩된 함수를 정의하고 이 함수를 handler 함수 대신 등록한다.
-                var wrapHandler = function (e) {
-                    var crossType = _this._originToCrossType( e.type );
+                var wrapHandler = $B.bind(function (e) {
+                    var crossType = this._originToCrossType( e.type );
     
                     if ( MS_POINTER ) {
                         if ( crossType === 'touchstart' || crossType === 'touchmove' ) {
-                            _this._addTouch(e);
+                            this._addTouch(e);
                         }
                     }
     
@@ -4613,26 +5346,25 @@
                         //이벤트 관리 함수
                         stopPropagation: function () { if (this._event) this._event.stopPropagation(); },
                         preventDefault: function () { if (this._event) this._event.preventDefault(); },
-                        touches: _this._getTouches(e)
+                        touches: this._getTouches(e)
                     };
     
                     if ( MS_POINTER ) {
                         if ( crossType === 'touchend' || crossType === 'touchcancel' ) {
-                            _this._removeTouch(e);
+                            this._removeTouch(e);
                         }
                     }
     
-                    handler.call( _this, evt );
+                    this.dispatch( evt.type, evt );
+                }, this);
+    
+                var evtData = {
+                    useCapture: useCapture || false,
+                    wrapHandler: wrapHandler
                 };
     
-                this._target.addEventListener( _this._getCrossType(type), wrapHandler, useCapture || false );
-    
-                this._eventPool[_this._eventId++] = {
-                    type: type,
-                    handler: handler,
-                    wrapHandler: wrapHandler,
-                    useCapture: useCapture
-                };
+                $B.Class.prototype.addListener.call( this, type, handler, evtData );
+                this._target.addEventListener( this._getCrossType(type), wrapHandler, evtData.useCapture );
             }
             return this;
         },
@@ -4645,32 +5377,33 @@
          * @return	{TouchEvent}
          */
         removeListener: function ( type, handler, useCapture ) {
-            if ( type && handler && useCapture ) {
-                for ( var n in this._eventPool ) {
-                    var event = this._eventPool[n];
+            var events = this.__eventPool__[type];
     
-                    if ( event.type === type && event.handler === handler && $B.isEqual(event.useCapture, useCapture) ) {
-                        console.log( '-basic_remove:', type );
-                        this._removeEvent( n, event, useCapture );
-                    }
-                }
-            } else if ( type && handler ) {
-                for ( var n in this._eventPool ) {
-                    var event = this._eventPool[n];
+            if ( events ) {
+                if ( typeof handler === 'function' ) {
+                    var evtLength = events.length, i;
     
-                    if ( event.type === type && event.handler === handler ) {
-                        this._removeEvent( n, event );
+                    if ( !$B.isEmpty(data) ) {
+                        for ( i = 0; i < evtLength; ++i ) {
+                            var eData = events[i];
+                            if ( handler === eData.handler && $B.isEqual(eData.data.useCapture, useCapture) ) {
+                                this._target.removeEventListener( this._getCrossType(type), eData.data.wrapHandler, eData.data.useCapture );
+                                events.splice( i, 1 );
+                            }
+                        }
+                    } else {
+                        for ( i = 0; i < evtLength; ++i ) {
+                            if ( handler === events[i].handler ) {
+                                this._target.removeEventListener( this._getCrossType(type), eData.data.wrapHandler, false );
+                                events.splice( i, 1 );
+                            }
+                        }
                     }
-                }
-            } else if ( type ) {
-                for ( var n in this._eventPool ) {
-                    var event = this._eventPool[n];
-                    if ( event.type === type ) this._removeEvent( n, event );
+                } else {
+                    delete this.__eventPool__[type];
                 }
             } else {
-                for ( var n in this._eventPool ) {
-                    this._removeEvent( n, this._eventPool[n] );
-                }
+                this.__eventPool__ = {};
             }
             return this;
         },
@@ -4683,15 +5416,35 @@
          * @return	{Boolean}
          */
         hasListener: function ( type, handler, useCapture ) {
-            for ( var n in this._eventPool ) {
-                var event = this._eventPool[n];
+            var result = false,
+                events = this.__eventPool__[type];
     
-                if ( event.type === type && event.handler === handler && $B.isEqual(event.useCapture, useCapture) ) {
-                    return true;
-                    break;
+            if ( events ) {
+                if ( typeof handler === 'function' ) {
+                    var evtLength = events.length, i;
+    
+                    if ( !$B.isEmpty(useCapture) ) {
+                        for ( i = 0; i < evtLength; ++i ) {
+                            var eData = events[i];
+                            if ( handler === eData.handler && $B.isEqual(eData.data.useCapture, useCapture) ) {
+                                result = true;
+                                break;
+                            }
+                        }
+                    } else {
+                        for ( i = 0; i < evtLength; ++i ) {
+                            if ( handler === events[i].handler ) {
+                                result = true;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    result = true;
                 }
             }
-            return false;
+    
+            return result;
         },
     
         /**
@@ -4708,8 +5461,84 @@
             }
     
             return this;
+        },
+    
+        // ===============	Private Methods =============== //
+    
+        _setEvents: function () {
+            this._touchHandler = $B.bind(function (e) {
+                this._removeTouch(e);
+            }, this);
+        },
+    
+        _addTouch: function ( event ) {
+            //if ( event.pointerType == 'mouse' || event.pointerType == 4 ) return;
+    
+            this._touches[event.pointerId] = {
+                target: event.target,
+                clientX: event.clientX,
+                clientY: event.clientY,
+                pageX: event.pageX,
+                pageY: event.pageY,
+                screenX: event.screenX,
+                screenY: event.screenY,
+                pointerType: this._getPointerType( event ) //IE only
+            };
+        },
+    
+        _removeTouch: function ( event ) {
+            delete this._touches[event.pointerId];
+        },
+    
+        _getPointerType: function ( event ) {
+            var result = 'touch', pointerType = event.pointerType;
+    
+            if ( typeof pointerType === 'string' ) {
+                result = pointerType;
+            } else if ( typeof pointerType === 'number' && pointerType > -1 && pointerType < 5 ) {
+                result = POINTER_TYPES[pointerType];
+            }
+    
+            return result;
+        },
+    
+        //크로스브라우징 TouchEvent Touches 반환
+        _getTouches: function ( event ) {
+            var touches;
+    
+            if ( MS_POINTER ) {
+                touches = [];
+                for ( var n in this._touches ) {
+                    touches.push(this._touches[n]);
+                }
+            } else {
+                touches = event.touches;
+            }
+    
+            return touches;
+        },
+    
+        //크로스브라우징 이벤트 타입 반환
+        _getCrossType: function ( type ) {
+            var crossType = CrossTouchEvent[type];
+            return crossType || type;
+        },
+    
+        //origin event type to cross event type
+        _originToCrossType: function ( type ) {
+            if ( /pointerdown/i.test(type) ) {
+                type = 'touchstart';
+            } else if ( /pointermove/i.test(type) ) {
+                type = 'touchmove';
+            } else if ( /pointerup/i.test(type) ) {
+                type = 'touchend';
+            } else if ( /pointercancel/i.test(type) ) {
+                type = 'touchcancel';
+            }
+    
+            return type;
         }
-    };
+    }, '$B.event.TouchEvent');
 
 
     // ============================================================== //
@@ -5926,18 +6755,6 @@
     }, '$B.event.Swipe');
 
 
-    // ############################################################################ //
-    // ############################################################################ //
-    // 									geom										//
-    // ############################################################################ //
-    // ############################################################################ //
-    
-    /**
-     * @type {ixBand.geom}
-     */
-    ixBand.geom = {};
-
-
     // ============================================================== //
     // =====================	Matrix		========================= //
     // ============================================================== //
@@ -6314,176 +7131,6 @@
     }, '$B.geom.Matrix3D');
 
 
-    // ############################################################################ //
-    // ############################################################################ //
-    // 									html										//
-    // ############################################################################ //
-    // ############################################################################ //
-    
-    ixBand.html = {
-        HTML_CHARACTERS: {
-            '&amp;': '&',
-            '&gt;': '>',
-            '&lt;': '<',
-            '&quot;': '"',
-            '&#39;': "'",
-            '&nbsp;': ' '
-        },
-    
-        /**
-         * "<" 태그를 "&lt;" 처럼 변형된 태그 문자열로 반환 (기존 변환된 문자열 유지)
-         * @param	{String}	str
-         * @return  {String}
-         */
-        encode: function ( str ) {
-            if ( !str ) return '';
-    
-            var regAry = $B.object.toArray( this.HTML_CHARACTERS ),
-                reg = new RegExp( '(' + regAry.join('|') + ')', 'g' ),
-                characters = this._htmlChars ? this._htmlChars : this._htmlChars = $B.object.replaceKeyValue( this.HTML_CHARACTERS );
-    
-            return str.replace( reg, function ( match, capture ) {
-                return characters[capture] || capture;
-            });
-        },
-    
-        /**
-         * "&lt;" 처럼 변형된 태그 문자열을 "<" 태그로 반환 (기존 태그는 유지)
-         * @param	{String}	str
-         * @return  {String}
-         */
-        decode: function ( str ) {
-            if ( !str ) return '';
-    
-            var _this = this,
-                regAry = $B.object.toArray( _this.HTML_CHARACTERS, 'key' ),
-                reg = new RegExp( '(' + regAry.join('|') + '|&#[0-9]{1,5};' + ')', 'g' );
-    
-            return str.replace( reg, function ( match, capture ) {
-                return ( capture in _this.HTML_CHARACTERS ) ? _this.HTML_CHARACTERS[capture] : String.fromCharCode(parseInt(capture.substr(2), 10));
-            });
-        }
-    };
-
-
-    // ############################################################################ //
-    // ############################################################################ //
-    // 									measure										//
-    // ############################################################################ //
-    // ############################################################################ //
-    
-    ixBand.measure = {
-        /**
-         * Document 가로사이즈 반환 (스크롤바 미포함)
-         * @return	{Number}
-         */
-        documentWidth: function () {
-            var docEl = document.documentElement;
-            return Math.max( docEl.scrollWidth, document.body.scrollWidth, docEl.clientWidth );
-        },
-        /**
-         * Document 세로로사이즈 반환 (스크롤바 미포함)
-         * @return	{Number}
-         */
-        documentHeight: function () {
-            var docEl = document.documentElement;
-            return Math.max( docEl.scrollHeight, document.body.scrollHeight, docEl.clientHeight );
-        },
-        /**
-         * Viewport 가로사이즈 반환 (메뉴바, 툴바, 스크롤바를 제외)
-         * @return	{Number}
-         */
-        windowWidth: function () {
-            return document.documentElement.clientWidth;
-        },
-        /**
-         * Viewport 세로사이즈 반환 (메뉴바, 툴바, 스크롤바를 제외)
-         * @return	{Number}
-         */
-        windowHeight: function () {
-            return document.documentElement.clientHeight;
-        },
-        /**
-         * Windows 바탕화면에서 브라우져 X좌표
-         * @return	{Number}
-         */
-        screenX: function () {
-            if ( window.screenLeft ) {
-                this.screenX = function () { return window.screenLeft; };
-            } else {
-                this.screenX = function () { return window.screenX; };
-            }
-            return this.screenX();
-        },
-        /**
-         * Windows 바탕화면에서 브라우져 Y좌표
-         * @return	{Number}
-         */
-        screenY: function () {
-            if ( window.screenTop ) {
-                this.screenY = function () { return window.screenTop; };
-            } else {
-                this.screenY = function () { return window.screenY; };
-            }
-            return this.screenY();
-        }
-    };
-
-
-    // ############################################################################ //
-    // ############################################################################ //
-    // 									mobile										//
-    // ############################################################################ //
-    // ############################################################################ //
-    
-    
-    /**
-     * @type {ixBand.mobile}
-     */
-    ixBand.mobile = {
-        TOUCH_ACTION: TOUCH_ACTION
-    };
-    
-
-
-    // ############################################################################ //
-    // ############################################################################ //
-    // 									net										//
-    // ############################################################################ //
-    // ############################################################################ //
-    
-    /**
-     * @type	{net}
-     */
-    ixBand.net = {
-        /**
-         * URL 이동
-         * @param	{String}	url			이동할 페이지 url
-         * @param	{String}	urlTarget	이동할 페이지 urlTarget
-         */
-        goToURL: function ( url, urlTarget ) {
-            if ( !urlTarget ) {
-                document.location.href = url;
-            } else {
-                switch ( urlTarget ) {
-                    case '_blank':
-                        window.open( url, urlTarget );
-                        break;
-                    case '_self':
-                        self.location.href = url;
-                        break;
-                    case '_parent':
-                        parent.location.href = url;
-                        break;
-                    case '_top':
-                        top.location.href = url;
-                        break;
-                }
-            }
-        }
-    };
-
-
     // ============================================================== //
     // =====================	HttpRequest	========================= //
     // ============================================================== //
@@ -6755,550 +7402,6 @@
             }
             this.script.src = this._path;
             document.getElementsByTagName( 'head' )[0].appendChild( this.script );
-        }
-    };
-
-
-    // ############################################################################ //
-    // ############################################################################ //
-    // 									object										//
-    // ############################################################################ //
-    // ############################################################################ //
-    
-    ixBand.object = {
-        /**
-         * 해당 값이 Object인지 여부 반환 (배열은 false)
-         * @param	{Object}	obj
-         * @returns {Boolean}
-         */
-        is: function ( obj, errorMsg ) {
-            var result = Object.prototype.toString.call( obj ) === '[object Object]';
-    
-            if ( errorMsg && !result ) {
-                warning( errorMsg );
-                return false;
-            } else {
-                return result;
-            }
-        },
-    
-        /**
-         * 순환 참조가 되지 않도록 Object 복사본을 반환.
-         * 주의) instance는 제대로 복사되지 않는다.
-         * @param	{Object}	value
-         * @returns {Object}
-         */
-        clone: deepClone,
-    
-        /**
-         * 두개의 Object를 확장 해서 (합쳐) 반환
-         * @param {Object}	fromObj
-         * @param {Object}	toObj	fromObj 와 같은 key를 가지고 있으면 toObj의 값이 우선이 된다.
-         * @param {Boolean}	circularReference
-         * 	순환참조를 유지할지 설정 (기본값 true)
-         * 	순화참조를 하지 않을경우 object.clone()으로 복사된다.
-         */
-        extend: function ( fromObj, toObj, circularReference ) {
-            circularReference = typeof circularReference === 'boolean' ? circularReference : true;
-    
-            var result = fromObj;
-    
-            if ( !circularReference ) {
-                result = deepClone( fromObj );
-                toObj = deepClone( toObj );
-            }
-    
-            for ( var key in toObj ) {
-                result[key] = toObj[key];
-            }
-    
-            return result;
-        },
-    
-        /**
-         * Object를 배열로 변환하여 반환
-         * @param   {Object}   obj
-         * @param   {String}   target  ("value", "key") 기본값 "value"
-         * @returns {Array}
-         */
-        toArray: function ( obj, target ) {
-            var result = [];
-            for ( var n in obj ) {
-                result.push( target === 'key' ? n : obj[n] );
-            }
-    
-            return result;
-        },
-    
-        /**
-         * Object의 key를 value로 value는 key로 변환하여 반환
-         * @param   {Object}   obj
-         * @returns {Object}
-         */
-        replaceKeyValue: function ( obj ) {
-            var result = {};
-            for ( var key in obj ) {
-                var value = obj[key];
-                result[value] = key;
-            }
-    
-            return result;
-        },
-    
-        length: function ( obj ) {
-            var count = 0;
-    
-            for ( var n in obj ) {
-                count++;
-            }
-    
-            return count;
-        }
-    };
-
-
-    // ############################################################################ //
-    // ############################################################################ //
-    // 									string										//
-    // ############################################################################ //
-    // ############################################################################ //
-    
-    ixBand.string = {
-        /**
-         * 대상이 문자열이면 true반환
-         * @param	{String}	target		대상 문자열
-         * @param	{String}	errorMsg	콘솔에 표시할 에러 메세지
-         * @return	{Boolean}
-         */
-        is: function ( target, errorMsg ) {
-            var result = (typeof target === 'string');
-    
-            if ( errorMsg && !result ) {
-                warning( errorMsg );
-                return false;
-            } else {
-                return result;
-            }
-        },
-    
-        /**
-         * 문자열의 원하는 Index에 문자열을 추가하여 반환. 반복적용 가능.
-         * 반복적용시 마지막 index에 문자추가되지 않음.
-         * @param	{String}	target		대상 문자열
-         * @param	{int}		addIndex	삽입할 Index.
-         * @param	{String}	addText		추가할 문자열.
-         * @param	{String}	direction	진행될 방향(left, right). 기본값 right
-         * @param	{Boolean}	repeat		반복적용 설정. 기본값 false
-         * @return	{String}
-         */
-        insert: function ( target, addIndex, addText, direction, repeat ) {
-            direction = direction || 'right';
-            repeat = (repeat)? 'g' : '';
-            var value = String(target),
-                reg = new RegExp( '.{' + addIndex + '}', repeat );
-    
-            this.is( value, 'string.insert() ' + MSG_NOT_STRING );
-    
-            if (direction == 'right') {
-                value = value.replace(reg, function (str) {
-                    return str + addText;
-                });
-                var lastIdx = value.length - 1;
-                return repeat && addText == value.charAt(lastIdx) ? value.substr(0, lastIdx) : value;
-            } else {
-                value = this.strrev( value );
-                value = value.replace( reg, function ( str ) {
-                    return str + addText;
-                });
-                value = this.strrev( value );
-                return repeat && addText == value.charAt(0) ? value.substring(1) : value;
-            }
-        },
-    
-        /**
-         * 숫자 "0"을 삽입하여 자리수를 맞춰 문자열을 반환.
-         * 예)trace( .format(5, 3) );//005
-         * @param	{String}	target		대상 문자열
-         * @param	{int}		cipher		자리수 설정.
-         * @param	{String}	fillStr		채워질 문자열, 기본 '0'
-         * @return	{String}
-         */
-        format: function ( target, cipher, fillStr ) {
-            fillStr = fillStr || '0';
-            var str = String(target),
-                result = '', addNum = cipher - str.length, i;
-    
-            this.is( str, 'string.format() ' + MSG_NOT_STRING );
-    
-            for ( i = 0; i < addNum; ++i ) {
-                result += fillStr;
-            }
-            return result += str;
-        },
-    
-        /**
-         * 카멜표기법을 하이픈표기법으로 변환하여 반환.
-         * @param	{String}	target		대상 문자열
-         * @return	{String}	fontSize -> font-size
-         */
-        hyphenCase: function ( target ) {
-            target = String(target);
-            this.is( target, 'string.hyphenCase() ' + MSG_NOT_STRING );
-            return target.replace( /[A-Z]/g, function ( val ) {
-                return '-' + val.toLowerCase();
-            });
-        },
-    
-        /**
-         * 하이픈표기법을 카멜표기법으로 변환하여 반환.
-         * @param	{String}	target		대상 문자열
-         * @return	{String}	font-size -> fontSize
-         */
-        camelCase: function ( target ) {
-            target = String(target);
-            this.is( target, 'string.camelCase() ' + MSG_NOT_STRING );
-            return target.replace(/-\b([a-z])/g, function (str) {
-                return str.charAt(1).toUpperCase();
-            });
-        },
-    
-        /**
-         * 단어의 첫글짜를 대문자로 변환
-         * @param	{String}	target		대상 문자열
-         * @return	{String}
-         */
-        capitalize: function ( target ) {
-            target = String(target);
-            this.is( target, 'string.capitalize() ' + MSG_NOT_STRING );
-            return target.replace(/\b([a-z])/g, function (str) {
-                return str.toUpperCase();
-            });
-        },
-    
-        /**
-         * 해당문자열에 해당 언어가 포함되어있는지 체크<br>
-         * 예).isLanguage("string", "en", "number")
-         * @param	{String}		target		대상 문자열
-         * @param	{String...}		languages	영문(en),한글(ko),숫자(number),특수문자(해당문자입력)
-         * @return	{Boolean}
-         */
-        isLanguage: function () {
-            var target = arguments[0],
-                regStr = '', langNum = arguments.length, i;
-    
-            target = String(target);
-            this.is( target, 'string.isLanguage() ' + MSG_NOT_STRING );
-    
-            for (i = 1; i < langNum; ++i) {
-                switch( arguments[i] ) {
-                    case 'en':
-                        regStr += 'A-Za-z';
-                        break;
-                    case 'ko':
-                        regStr += 'ㄱ-ㅣ가-힣';
-                        break;
-                    case 'number':
-                        regStr += '0-9';
-                        break;
-                    default:
-                        regStr += arguments[i].replace( /[(){}[\]*+?.\\^$|,\-]/g, '\\$&' );
-                        break;
-                }
-            }
-            return new RegExp( '[' + regStr + ']' ).test( target );
-        },
-    
-        /**
-         * 해당 문자열에 일치하는 완전체 단어가 있는지 검사
-         * 예)	.isWholeWord( "Hello World", "Hello" ); // true
-         *		.isWholeWord( "Hello World", "He" ); // false
-         * @param	{String}		target		대상 문자열
-         * @param	{String, Array}	findStr		비교할 String or String Array, 문자열의 앞뒤로 공백이 들어가면 다른 문자열로 인식하여 false반환.
-         * @param	{String}		flags		대소문자 구별하지 않으려면 "i", 멀티라인 검색은 "m"
-         * @return	{Boolean}
-         */
-        isWholeWord: function ( target, findStr, flags ) {
-            target = String(target);
-            this.is( target, 'string.isWholeWord() ' + MSG_NOT_STRING );
-    
-            var num, i, strs, result = false;
-    
-            if ( $B.array.is(findStr) ) {
-                strs = findStr;
-                num = strs.length;
-            } else {
-                num = 1;
-                strs = [findStr];
-            }
-    
-            for ( i = 0; i < num; ++i ) {
-                var str = strs[i].replace( /[(){}[\]*+?.\\^$|,\-]/g, '\\$&' );
-                result = new RegExp( '(?:\\s|^)' + str + '(?:\\s|$)', flags || '' ).test( target );
-                if ( !result ) return false;
-            }
-    
-            return result;
-        },
-    
-        /**
-         * 문자열(수치)을 3자리 숫자 단위표기법으로 반환.
-         * @param	{String, Number}		target		대상 문자열
-         * @return	{String}
-         */
-        numberFormat: function ( target ) {
-            var str = String(target),
-                minus = '',
-                temps = [], result = '';
-    
-            this.is( str, 'string.numberFormat() ' + MSG_NOT_STRING );
-    
-            if (str.charAt(0) == '-') {
-                minus = '-';
-                str = str.substring(1);
-            }
-    
-            temps = str.split('.');
-            result = minus + $B.string.insert( temps[0], 3, ',', 'left', true );
-    
-            return ( temps[1] )? result += '.' + temps[1] : result;
-        },
-    
-        /**
-         * 대상 문자열에서 html태그를 모두 삭제
-         * @param	{String}		target		대상 문자열
-         * @return	{String}
-         */
-        removeTags: function ( target ) {
-            target = String(target);
-            this.is( target, 'string.removeTags() ' + MSG_NOT_STRING );
-            return target.replace(/<[^>]+>/g, '');
-        },
-    
-        /**
-         * 문자열을 뒤집어 반환.('abc' to 'cba')
-         * @param	{String}	target		대상 문자열
-         * @return	{String}
-         */
-        strrev: function ( target ) {
-            target = String(target);
-            this.is( target, 'string.strrev() ' + MSG_NOT_STRING );
-            return target.split('').reverse().join('');
-        },
-    
-        /**
-         * 문자열의 앞뒤 white space삭제(탭, 띄어쓰기, \n, \r)
-         * @param	{String}	target		대상 문자열
-         * @return	{String}
-         */
-        trim: function ( target ) {
-            target = String(target);
-            this.is( target, 'string.trim() ' + MSG_NOT_STRING );
-            return ( target )? target.replace(/^\s+/, '').replace(/\s+$/, '') : '';
-        },
-    
-        /**
-         * 16자의 문자열을 random하게 반환 한다. (해당 화면에서 절대 유일값, alphabet + int 조합)
-         * @return	{String}
-         */
-        random: function () {
-            var random = Math.random(),
-                randomStr = random.toString( 32 ).substr( 2 ),
-                alphabet = Math.round( Math.random() * 21 + 10 ).toString( 32 );//a~v
-    
-            if ( randomStr.length < 2 ) randomStr = 'i' + alphabet + 'x' + alphabet + 'b' + alphabet + 'a' + alphabet + 'n' + alphabet + 'd';
-            var result = alphabet + __keyCount.toString( 32 ) + randomStr + randomStr + randomStr + randomStr;
-            __keyCount++;
-            return result.substr( 0, 15 ) + alphabet;
-        }
-    };
-
-
-    // ############################################################################ //
-    // ############################################################################ //
-    // 									style										//
-    // ############################################################################ //
-    // ############################################################################ //
-    
-    ixBand.style = {
-        /**
-         * 인라인스타일을 설정하거나 반환.
-         * @param	{Element}	el			대상 Element
-         * @param	{String}	propStr		"width:100px; z-index:2" 표기법, 설정하지 않으면 cssText반환,
-         */
-        inline: function ( el, propStr ) {
-            var css = (el && el.style)? el.style.cssText : '';
-    
-            //setter
-            if ( propStr ) {
-                propStr = $B.string.trim( propStr );
-    
-                if ( css && css.charAt( css.length-1 ) != ';' ) css += ';';//Opera에서는 css 속성끝에 ";"처리를 하지 않으면 에러가 난다.
-                el.style.cssText = css + ' ' + propStr;
-                //getter
-            } else {
-                return css;
-            }
-        },
-    
-        /**
-         * 지정된 ComputedStyle을 보정없이 반환, 읽기전용
-         * Style이 100%와 같은 형식으로 지정이 되어있다면, IE와 FF브라우져에서 다른값을 반환할수있다(IE=100%, FF=현재사이즈px).
-         * 사파리, 크롬, z-index를 구할려면, position이 설정되어 있어야 한다. 아니면 'auto'라고 반환.
-         * @param	{Element}	el			대상 Element
-         * @param	{String}	property	기본값 all, z-index표기법 사용
-         * @return	{Style, StyleValue}
-         */
-        current: function ( el, property ) {
-            if ( window.getComputedStyle ) {
-                this.current = function ( el, property ) {
-                    var current = window.getComputedStyle( el, null );
-                    if ( !current ) return;
-    
-                    return ( property )? current.getPropertyValue( property ) : current;
-                };
-    
-                //IE6~8
-            } else if ( document.documentElement.currentStyle ) {
-                this.current = function ( el, property ) {
-                    var current = el.currentStyle;
-                    if ( !current ) return;
-    
-                    return ( property )? current[$B.string.camelCase(property)] : current;
-                };
-            }
-    
-            return this.current( el, property );
-        },
-    
-        /**
-         * 지정된 ComputedStyle을 보정(pixel)하여 반환 (IE6~8 전용), 읽기전용
-         * 사파리, 크롬, z-index를 구할려면, position이 설정되어 있어야 한다. 아니면 'auto'라고 반환.
-         * @param	{Element}	el			대상 Element
-         * @param	{String}	property	기본값 all, z-index표기법 사용
-         * @return	{Style, StyleValue}
-         */
-        computed: function ( el, property ) {
-            var left, rs, rsLeft,
-                result = $B.style.current( el, property ),
-                style = el.style,
-                name = $B.string.camelCase( property );
-    
-            if ( result == null && style && style[name] ) result = style[name];
-    
-            var core_pnum = /[+-]?(?:\d*\.|)\d+(?:[eE][+-]?\d+|)/.source,
-                rposition = /^(top|right|bottom|left)$/,
-                rnumnonpx = new RegExp( '^(' + core_pnum + ')(?!px)[a-z%]+$', 'i' );
-    
-            if ( rnumnonpx.test( result ) && !rposition.test( name ) ) {
-                left = style.left;
-                rs = el.runtimeStyle;
-                rsLeft = rs && rs.left;
-    
-                if ( rsLeft ) rs.left = el.currentStyle.left;
-    
-                style.left = (name === 'fontSize')? '1em' : result;
-                result = style.pixelLeft + 'px';
-    
-                style.left = left;
-                if ( rsLeft ) rs.left = rsLeft;
-            }
-    
-            if ( result == 'auto' && name == 'width' || name == 'height' ) {
-                result = $B( el ).rect()[name] + 'px';
-            }
-    
-            //color값에서 keyword를 16진수로 변환
-            if ( /color/i.test(property) ) {
-                var colorKey = $B.color.keyword( result );
-                if ( colorKey )  result = colorKey;
-            }
-    
-            return result;
-        },
-    
-        /**
-         * opacity(투명도)를 설정하거나 반환, IE6~8 크로스브라우징을 위해서 사용, ie6에서는 png핵을 이용한 png에만 적용가능
-         * @param	{Element}	el			대상 Element
-         * @param	{Number}	percent	0~1
-         */
-        opacity: function ( el, percent ) {
-            if ( $B.ua.DOC_MODE_IE9_LT ) {
-                this.opacity = function ( el, percent ) {
-                    //setter
-                    if ( percent || percent == 0 ) {
-                        percent = Number(percent);
-                        //el.style.opacity = percent;
-    
-                        var ralpha = /alpha\([^)]*\)/i,
-                            style = el.style,
-                            cStyle = el.currentStyle,
-                            opacity = ( typeof percent === 'number' )? 'alpha(opacity=' + (percent * 100) + ')' : '',
-                            filter = cStyle && cStyle.filter || style.filter || '', css = '';
-    
-                        //style.zoom = 1;
-                        if ( percent >= 1 && $B.string.trim( filter.replace( ralpha, '' ) ) === '' ) {
-                            style.removeAttribute( 'filter' );
-                            if ( cStyle && !cStyle.filter ) return;
-                        }
-    
-                        //style.filter = ralpha.test( filter )? filter.replace( ralpha, opacity ) : filter + ' ' + opacity;
-                        css = ralpha.test( filter )? filter.replace( ralpha, opacity ) : filter + ' ' + opacity;
-                        $B.style.inline( el, 'zoom: 1; filter:' + css );
-    
-                        //getter
-                    } else {
-                        var ropacity = /opacity\s*=\s*([^)]*)/;
-                        return ropacity.test( (el.currentStyle ? el.currentStyle.filter : el.style.filter) || '' ) ?
-                        0.01 * parseFloat( RegExp.$1 ) : 1;
-                    }
-                };
-            } else {
-                this.opacity = function ( el, percent ) {
-                    //setter
-                    if ( percent || percent == 0 ) {
-                        el.style.opacity = percent;
-                        //getter
-                    } else {
-                        return $B.style.current( el, 'opacity' );
-                    }
-                };
-            }
-    
-            return this.opacity( el, percent );
-        },
-    
-        /**
-         * Style Properties를 {propName: {name, value, unit}} 형식으로 파싱해서 반환
-         * @param	{String}		target		대상 스타일 문자열, 예)"width: 100px; height: 200px;"
-         * @return	{Object}
-         */
-        parse: function ( target ) {
-            var props = {};
-            //String(target).replace(/([a-zA-Z\-]+)\s*?:\s*?([#\w\.\-\,\s\/\?\&\:\=\(\)\%]+);?/g, function ( str, n, v ) {
-            String(target).replace(/([a-zA-Z\-]+)\s*?:\s*?([#\w\-.,\s\/?&:=\(\)%]+);?/g, function ( str, n, v ) {
-                var obj = $B.style.parseValue( v );
-                props[ $B.string.camelCase(n) ] = {name: n, value: obj.value, unit: obj.unit};
-            });
-            return props;
-        },
-    
-        /**
-         * Style Property Value를 Object(value, unit)으로 파싱해서 반환
-         * @param	{String}		target		대상 스타일값 문자열, 예)"100px"
-         * @return	{Object}
-         */
-        parseValue: function ( target ) {
-            var result = {},
-                val = String( target );
-    
-            if ( val && val.indexOf('(') > -1 ) {
-                result = {value: $B.string.trim(val), unit: ''};
-            } else {
-                val.replace(/\s*?([-\d\.]+|#[\da-fA-F]+)([a-zA-Z\%]+)?/, function (str, v, u) {
-                    result = {value: $B.string.trim(v), unit: u || ''};
-                });
-            }
-            return result;
         }
     };
 })();
