@@ -42,20 +42,22 @@ CustomEvents.prototype = {
         var events = this.__eventPool__[type];
 
         if ( events ) {
-            if ( typeof callback === 'function' ) {
+            if ( $B.isFunction(callback) ) {
                 var evtLength = events.length, i;
 
                 if ( !$B.isEmpty(data) && this.__eventDataCheck__ ) {
                     for ( i = 0; i < evtLength; ++i ) {
                         var eData = events[i];
                         if ( callback === eData.handler && $B.isEqual(eData.data, data) ) {
-                            events.splice( i, 1 );
+                            events.splice( $B.array.indexOf(events, events[i]), 1 );
+                            break;
                         }
                     }
                 } else {
                     for ( i = 0; i < evtLength; ++i ) {
                         if ( callback === events[i].handler ) {
-                            events.splice( i, 1 );
+                            events.splice( $B.array.indexOf(events, events[i]), 1 );
+                            break;
                         }
                     }
                 }
@@ -80,7 +82,7 @@ CustomEvents.prototype = {
             events = this.__eventPool__[type];
 
         if ( events ) {
-            if ( typeof callback === 'function' ) {
+            if ( $B.isFunction(callback) ) {
                 var evtLength = events.length, i;
 
                 if ( !$B.isEmpty(data) && this.__eventDataCheck__ ) {

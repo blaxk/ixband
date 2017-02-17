@@ -1796,20 +1796,22 @@
             var events = this.__eventPool__[type];
     
             if ( events ) {
-                if ( typeof callback === 'function' ) {
+                if ( $B.isFunction(callback) ) {
                     var evtLength = events.length, i;
     
                     if ( !$B.isEmpty(data) && this.__eventDataCheck__ ) {
                         for ( i = 0; i < evtLength; ++i ) {
                             var eData = events[i];
                             if ( callback === eData.handler && $B.isEqual(eData.data, data) ) {
-                                events.splice( i, 1 );
+                                events.splice( $B.array.indexOf(events, events[i]), 1 );
+                                break;
                             }
                         }
                     } else {
                         for ( i = 0; i < evtLength; ++i ) {
                             if ( callback === events[i].handler ) {
-                                events.splice( i, 1 );
+                                events.splice( $B.array.indexOf(events, events[i]), 1 );
+                                break;
                             }
                         }
                     }
@@ -1834,7 +1836,7 @@
                 events = this.__eventPool__[type];
     
             if ( events ) {
-                if ( typeof callback === 'function' ) {
+                if ( $B.isFunction(callback) ) {
                     var evtLength = events.length, i;
     
                     if ( !$B.isEmpty(data) && this.__eventDataCheck__ ) {
@@ -5377,32 +5379,38 @@
          * @return	{TouchEvent}
          */
         removeListener: function ( type, handler, useCapture ) {
-            var events = this.__eventPool__[type];
+            var events = this.__eventPool__[type],
+                crossType = this._getCrossType( type ),
+                evtLength = 0, i;
     
             if ( events ) {
-                if ( typeof handler === 'function' ) {
-                    var evtLength = events.length, i;
+                evtLength = events.length;
     
-                    if ( !$B.isEmpty(data) ) {
-                        for ( i = 0; i < evtLength; ++i ) {
-                            var eData = events[i];
-                            if ( handler === eData.handler && $B.isEqual(eData.data.useCapture, useCapture) ) {
-                                this._target.removeEventListener( this._getCrossType(type), eData.data.wrapHandler, eData.data.useCapture );
-                                events.splice( i, 1 );
-                            }
-                        }
-                    } else {
-                        for ( i = 0; i < evtLength; ++i ) {
-                            if ( handler === events[i].handler ) {
-                                this._target.removeEventListener( this._getCrossType(type), eData.data.wrapHandler, false );
-                                events.splice( i, 1 );
-                            }
+                if ( $B.isFunction(handler) ) {
+                    for ( i = 0; i < evtLength; ++i ) {
+                        var eData = events[i];
+                        if ( handler === eData.handler && $B.isEqual(eData.data.useCapture, useCapture || false) ) {
+                            this._target.removeEventListener( crossType, eData.data.wrapHandler, eData.data.useCapture );
+                            events.splice( $B.array.indexOf(events, events[i]), 1 );
                         }
                     }
                 } else {
+                    for ( i = 0; i < evtLength; ++i ) {
+                        this._target.removeEventListener( crossType, events[i].data.wrapHandler, events[i].data.useCapture );
+                    }
+    
                     delete this.__eventPool__[type];
                 }
             } else {
+                for ( var key in this.__eventPool__ ) {
+                    events = this.__eventPool__[key];
+                    crossType = this._getCrossType( key );
+                    evtLength = events.length;
+    
+                    for ( i = 0; i < evtLength; ++i ) {
+                        this._target.removeEventListener( crossType, events[i].data.wrapHandler, events[i].data.useCapture );
+                    }
+                }
                 this.__eventPool__ = {};
             }
             return this;
@@ -5420,13 +5428,13 @@
                 events = this.__eventPool__[type];
     
             if ( events ) {
-                if ( typeof handler === 'function' ) {
+                if ( $B.isFunction(handler) ) {
                     var evtLength = events.length, i;
     
                     if ( !$B.isEmpty(useCapture) ) {
                         for ( i = 0; i < evtLength; ++i ) {
                             var eData = events[i];
-                            if ( handler === eData.handler && $B.isEqual(eData.data.useCapture, useCapture) ) {
+                            if ( handler === eData.handler && $B.isEqual(eData.data.useCapture, useCapture || false) ) {
                                 result = true;
                                 break;
                             }
