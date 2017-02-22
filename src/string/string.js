@@ -12,7 +12,7 @@ ixBand.string = {
      * @return	{Boolean}
      */
     is: function ( target, errorMsg ) {
-        var result = (typeof target === 'string');
+        var result = ( typeof target === 'string' );
 
         if ( errorMsg && !result ) {
             warning( errorMsg );
@@ -34,13 +34,11 @@ ixBand.string = {
      */
     insert: function ( target, addIndex, addText, direction, repeat ) {
         direction = direction || 'right';
-        repeat = (repeat)? 'g' : '';
-        var value = String(target),
+        repeat = ( repeat )? 'g' : '';
+        var value = String( target ),
             reg = new RegExp( '.{' + addIndex + '}', repeat );
 
-        this.is( value, 'string.insert() ' + MSG_NOT_STRING );
-
-        if (direction == 'right') {
+        if ( direction == 'right' ) {
             value = value.replace(reg, function (str) {
                 return str + addText;
             });
@@ -66,10 +64,8 @@ ixBand.string = {
      */
     format: function ( target, cipher, fillStr ) {
         fillStr = fillStr || '0';
-        var str = String(target),
+        var str = String( target ),
             result = '', addNum = cipher - str.length, i;
-
-        this.is( str, 'string.format() ' + MSG_NOT_STRING );
 
         for ( i = 0; i < addNum; ++i ) {
             result += fillStr;
@@ -83,8 +79,7 @@ ixBand.string = {
      * @return	{String}	fontSize -> font-size
      */
     hyphenCase: function ( target ) {
-        target = String(target);
-        this.is( target, 'string.hyphenCase() ' + MSG_NOT_STRING );
+        target = String( target );
         return target.replace( /[A-Z]/g, function ( val ) {
             return '-' + val.toLowerCase();
         });
@@ -96,8 +91,7 @@ ixBand.string = {
      * @return	{String}	font-size -> fontSize
      */
     camelCase: function ( target ) {
-        target = String(target);
-        this.is( target, 'string.camelCase() ' + MSG_NOT_STRING );
+        target = String( target );
         return target.replace(/-\b([a-z])/g, function (str) {
             return str.charAt(1).toUpperCase();
         });
@@ -109,8 +103,7 @@ ixBand.string = {
      * @return	{String}
      */
     capitalize: function ( target ) {
-        target = String(target);
-        this.is( target, 'string.capitalize() ' + MSG_NOT_STRING );
+        target = String( target );
         return target.replace(/\b([a-z])/g, function (str) {
             return str.toUpperCase();
         });
@@ -128,7 +121,6 @@ ixBand.string = {
             regStr = '', langNum = arguments.length, i;
 
         target = String(target);
-        this.is( target, 'string.isLanguage() ' + MSG_NOT_STRING );
 
         for (i = 1; i < langNum; ++i) {
             switch( arguments[i] ) {
@@ -159,8 +151,7 @@ ixBand.string = {
      * @return	{Boolean}
      */
     isWholeWord: function ( target, findStr, flags ) {
-        target = String(target);
-        this.is( target, 'string.isWholeWord() ' + MSG_NOT_STRING );
+        target = String( target );
 
         var num, i, strs, result = false;
 
@@ -191,8 +182,6 @@ ixBand.string = {
             minus = '',
             temps = [], result = '';
 
-        this.is( str, 'string.numberFormat() ' + MSG_NOT_STRING );
-
         if (str.charAt(0) == '-') {
             minus = '-';
             str = str.substring(1);
@@ -210,8 +199,7 @@ ixBand.string = {
      * @return	{String}
      */
     removeTags: function ( target ) {
-        target = String(target);
-        this.is( target, 'string.removeTags() ' + MSG_NOT_STRING );
+        target = String( target );
         return target.replace(/<[^>]+>/g, '');
     },
 
@@ -221,8 +209,7 @@ ixBand.string = {
      * @return	{String}
      */
     strrev: function ( target ) {
-        target = String(target);
-        this.is( target, 'string.strrev() ' + MSG_NOT_STRING );
+        target = String( target );
         return target.split('').reverse().join('');
     },
 
@@ -232,8 +219,7 @@ ixBand.string = {
      * @return	{String}
      */
     trim: function ( target ) {
-        target = String(target);
-        this.is( target, 'string.trim() ' + MSG_NOT_STRING );
+        target = String( target );
         return ( target )? target.replace(/^\s+/, '').replace(/\s+$/, '') : '';
     },
 
@@ -250,5 +236,29 @@ ixBand.string = {
         var result = alphabet + __keyCount.toString( 32 ) + randomStr + randomStr + randomStr + randomStr;
         __keyCount++;
         return result.substr( 0, 15 ) + alphabet;
+    },
+
+    /**
+     * 문자열을 각 데이타 타입에 맞춰 변환
+     * @param {String}  str
+     * @returns {Boolean, String, Number, Null, Undefined}
+     */
+    convertDataType: function ( str ) {
+        str = String( str );
+
+        if ( str ) {
+            if ( /^\s*true\s*$/.test(str) ) {
+                str = Boolean( str );
+            } else if ( /^\s*false\s*$/.test(str) ) {
+                str = Boolean();
+            } else if ( /^\s*-*[0-9\.]+\s*$/.test(str) ) {
+                str = Number( str );
+            } else if ( /^\s*null\s*$/.test(str) ) {
+                str = null;
+            } else if ( /^\s*undefined\s*$/.test(str) ) {
+                str = undefined;
+            }
+        }
+        return str;
     }
 };

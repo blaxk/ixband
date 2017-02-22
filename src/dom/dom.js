@@ -78,22 +78,30 @@ var _dom = {
      * <b>읽기전용</b>
      * 타겟타입:(Selector, Element, jQuery)
      * 단일 Element 반환, 찾는 대상이 없으면 "ixError" 발생
+     * @param   {Boolean}   silent  설정시 Error처리를 하지 않는다.
      * @return	{Element}
      */
-    element: function () {
+    element: function ( silent ) {
         var target = this.target, el;
 
-        if ( typeof target.get === 'function' ) {
-            el = target.get(0);
+        if ( typeof target === 'string' ) {
+            el = $B( document ).selector( target );
         } else {
-            el = ( typeof target === 'string' )? $B( document ).selector( target ) : target;
+            if ( target ) {
+                //jQuery Object
+                if ( typeof target.get === 'function' ) {
+                    el = target.get(0);
+                } else {
+                    el = target;
+                }
+            }
         }
 
         if ( el ) {
             this.target = el;
         } else {
             //warning( '"' + target + '" 와 일치하는 대상이 없습니다.' );
-            throw new Error( '[ixBand] "' + target + '" 와 일치하는 대상이 없습니다.' );
+            if ( !silent ) throw new Error( '[ixBand] "' + target + '" 와 일치하는 대상이 없습니다.' );
         }
         return el;
     },
@@ -121,7 +129,7 @@ var _dom = {
     /**
      * 타겟타입:(Selector, Element)<br>
      * target의 해당자식 노드 삭제
-     * @param	{Node, Int}		child	node나 index:0~ 수치가 자식수보다 크거나 작으면 에러발생
+     * @param	{Selector, Element, Int}		child	node나 index:0~ 수치가 자식수보다 크거나 작으면 에러발생
      */
     removeChild: function ( child ) {
         var el = this.element();
@@ -136,9 +144,31 @@ var _dom = {
                 warning('.removeChild()에 지정한 수치가 자식수보다 크거나 작습니다!');
                 return;
             }
+        } else {
+            child = $B( child ).element( true );
         }
 
         el.removeChild( child );
+    },
+
+    /**
+     * 대상 삭제
+     */
+    remove: function () {
+        var el = this.element();
+        if ( el && el.parentNode ) el.parentNode.removeChild( el );
+    },
+
+    /**
+     * 대상을 교체
+     * @param	{Selector, Element}   selector
+     * @return  {Element}
+     */
+    replaceWith: function ( selector ) {
+        var el = this.element(),
+            node = $B( selector ).element( true );
+
+        if ( el && el.parentNode ) el.parentNode.replaceChild( el, node );
     },
 
     /**

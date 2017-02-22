@@ -2,7 +2,7 @@ module.exports = function ( grunt ) {
     'use strict';
 
     var pkg = grunt.file.readJSON( 'package.json' ),
-        comment = '/**\n * <%= pkg.name %> - Javascript Library\n * @package	{<%= pkg.name %>}\n * @version v<%= pkg.buildVersion %> - <%= grunt.template.today("yymmdd") %> (blaxk)\n * Licensed under the MIT, http://ixband.com\n */\n';
+        comment = '/**\n * <%= pkg.name %> - Javascript Library\n * @package	{<%= pkg.name %>}\n * @version v<%= pkg.buildVersion %> - <%= grunt.template.today("yymmdd") %> (blaxk)\n * The MIT License (MIT), http://ixband.com\n */\n';
 
     // Project configuration.
     grunt.initConfig({

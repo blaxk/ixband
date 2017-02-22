@@ -118,5 +118,39 @@ ixBand.utils = {
                 }
             }
         }
+    },
+
+    /**
+     * url의 parameter 의 값을 반환하거나, object를 조합하여 url parameter string으로 반환
+     * @param {String, Object}    value
+     * @return  {*}
+     */
+    urlParam: function ( value ) {
+        if ( $B.isObject(value) ) {
+            var str = location.search;
+
+            str = ( /^\?[^\?\=]+\=/.test(str) )? str + '&' : '?' + str;
+
+            for ( var key in value ) {
+                str += key + '=' + value[key] + '&';
+            }
+
+            return str.replace( /\&$/, '' );
+        } else {
+            var result = {};
+            location.search.replace( /(\w*)\=([^&]*)/g, $B.bind(function ( str, prop, val ) {
+                if ( prop ) result[prop] = $B.string.convertDataType( val );
+            }, this));
+
+            if ( typeof value === 'string' ) {
+                if ( result[value] ) {
+                    result = result[value];
+                } else {
+                    result = '';
+                }
+            }
+
+            return result;
+        }
     }
 };

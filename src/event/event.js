@@ -35,22 +35,22 @@ ixBand.event = (function () {
     function removeAllHandlers (e) {
         var _this = this, id;
 
-        for ( id in _this._ix_allEvents_ ) {
-            var h = _this._ix_allEvents_[id];
+        for ( id in _this.__ix_allEvents__ ) {
+            var h = _this.__ix_allEvents__[id];
             h.el.detachEvent( 'on' + h.type, h.wrapHandler );
-            delete _this._ix_allEvents_[id];
+            delete _this.__ix_allEvents__[id];
         }
     }
 
     //대상의 모든 이벤트 삭제
     function removeAllEvent ( el, clone ) {
-        if ( el._ix_eventIds_ ) {
-            var ids = el._ix_eventIds_,
+        if ( el.__ix_eventIds__ ) {
+            var ids = el.__ix_eventIds__,
                 eidNum = ids.length, i;
 
             for ( i = 0; i < eidNum; ++i ) {
                 var id = ids[i],
-                    evt = window._ix_allEvents_[id],
+                    evt = window.__ix_allEvents__[id],
                     type = evt.type,
                     matchEl = ( clone )? true: evt.el == el;
 
@@ -58,12 +58,12 @@ ixBand.event = (function () {
                 if ( matchEl ) {
                     Evt._removeEventListener( el, type, evt.wrapHandler );
 
-                    //창마다 하나식 있는 _ix_allEvents_ 객체에서 이벤트정보 삭제
-                    if ( !clone ) delete window._ix_allEvents_[id];
+                    //창마다 하나식 있는 __ix_allEvents__ 객체에서 이벤트정보 삭제
+                    if ( !clone ) delete window.__ix_allEvents__[id];
                 }
             }
 
-            if ( !clone ) el._ix_eventIds_ = null;
+            if ( !clone ) el.__ix_eventIds__ = null;
         }
     }
 
@@ -92,7 +92,7 @@ ixBand.event = (function () {
         add: null,
 
         find: function ( el, type, handler, isAll ) {
-            var eventIds = el._ix_eventIds_;
+            var eventIds = el.__ix_eventIds__;
             //등록된 _ix_eventIds_가 없으면 -1반환
             if ( !eventIds ) return -1;
 
@@ -105,7 +105,7 @@ ixBand.event = (function () {
             //가장최근에 등록된 이벤트가 제거될 가능성이 높기때문에 루프를 뒤에서 부터 돈다.
             for ( i = hNum; i >= 0; --i ) {
                 var hId = eventIds[i],
-                    evt = window._ix_allEvents_[hId];
+                    evt = window.__ix_allEvents__[hId];
 
                 if ( isAll ) {
                     if ( evt.type === type ) {
@@ -144,8 +144,8 @@ ixBand.event = (function () {
 
                     for ( var i = 0; i < evtLength; ++i ) {
                         var idx = evts[i],
-                            id = el._ix_eventIds_[idx],
-                            evt = window._ix_allEvents_[id];
+                            id = el.__ix_eventIds__[idx],
+                            evt = window.__ix_allEvents__[id];
 
                         evt.wrapHandler.call( e.el, {
                             type: evt.type,
@@ -158,24 +158,24 @@ ixBand.event = (function () {
         },
 
         remove: function ( el, type, handler ) {
-            //el._ix_eventIds_[] 배열에서 찾는다.
+            //el.__ix_eventIds__[] 배열에서 찾는다.
             var i = this.find( el, type, handler );
             if ( i == -1 ) return;
 
-            var id = el._ix_eventIds_[i],
-                h = window._ix_allEvents_[id];
+            var id = el.__ix_eventIds__[i],
+                h = window.__ix_allEvents__[id];
 
             this._removeEventListener( el, type, h.wrapHandler );
 
             //배열에서 el 제거
-            el._ix_eventIds_.splice( i, 1 );
-            //창마다 하나식 있는 _ix_allEvents_ 객체에서 이벤트정보 삭제
-            delete window._ix_allEvents_[id];
+            el.__ix_eventIds__.splice( i, 1 );
+            //창마다 하나식 있는 __ix_allEvents__ 객체에서 이벤트정보 삭제
+            delete window.__ix_allEvents__[id];
         },
 
         //대상 개체의 해당 타입의 모든 이벤트 삭제
         removeTypeAll: function ( el, type ) {
-            var eventIds = el._ix_eventIds_;
+            var eventIds = el.__ix_eventIds__;
             //등록된 _ix_eventIds_가 없으면 정지.
             if ( !eventIds ) return;
 
@@ -184,14 +184,14 @@ ixBand.event = (function () {
             //가장최근에 등록된 이벤트가 제거될 가능성이 높기때문에 루프를 뒤에서 부터 돈다.
             for ( var i = eventIds.length - 1; i >= 0; --i ) {
                 var id = eventIds[i],
-                    evt = window._ix_allEvents_[id];
+                    evt = window.__ix_allEvents__[id];
 
                 if ( evt.type == type ) {
                     this._removeEventListener( el, type, evt.wrapHandler );
                     //배열에서 el 제거
-                    el._ix_eventIds_.splice( i, 1 );
-                    //창마다 하나식 있는 _ix_allEvents_ 객체에서 이벤트정보 삭제
-                    delete window._ix_allEvents_[id];
+                    el.__ix_eventIds__.splice( i, 1 );
+                    //창마다 하나식 있는 __ix_allEvents__ 객체에서 이벤트정보 삭제
+                    delete window.__ix_allEvents__[id];
                 }
             }
         },
@@ -357,11 +357,11 @@ ixBand.event = (function () {
             var w = window,
                 id = getEventID();
 
-            if ( !w._ix_allEvents_ ) w._ix_allEvents_ = {};
-            w._ix_allEvents_[id] = h;
+            if ( !w.__ix_allEvents__ ) w.__ix_allEvents__ = {};
+            w.__ix_allEvents__[id] = h;
 
-            if ( !el._ix_eventIds_ ) el._ix_eventIds_ = [];
-            el._ix_eventIds_.push(id);
+            if ( !el.__ix_eventIds__ ) el.__ix_eventIds__ = [];
+            el.__ix_eventIds__.push(id);
         };
 
         // ==================== IE6~8 Browser ==================== //
@@ -415,11 +415,11 @@ ixBand.event = (function () {
             var w = window,
                 id = getEventID();
 
-            if ( !w._ix_allEvents_ ) w._ix_allEvents_ = {};
-            w._ix_allEvents_[id] = h;
+            if ( !w.__ix_allEvents__ ) w.__ix_allEvents__ = {};
+            w.__ix_allEvents__[id] = h;
 
-            if ( !el._ix_eventIds_ ) el._ix_eventIds_ = [];
-            el._ix_eventIds_.push(id);
+            if ( !el.__ix_eventIds__ ) el.__ix_eventIds__ = [];
+            el.__ix_eventIds__.push(id);
 
             //창과 관련된 onunload 이벤트가 없으면 하나 등록.
             if ( !w._ix_onunloadHandlerReg_ ) {

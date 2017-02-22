@@ -1,8 +1,8 @@
 /**
  * ixBand - Javascript Library
  * @package	{ixBand}
- * @version v1.0.0 - 170217 (blaxk)
- * Licensed under the MIT, http://ixband.com
+ * @version v1.0.0 - 170222 (blaxk)
+ * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
     "use strict";
@@ -514,22 +514,30 @@
          * <b>읽기전용</b>
          * 타겟타입:(Selector, Element, jQuery)
          * 단일 Element 반환, 찾는 대상이 없으면 "ixError" 발생
+         * @param   {Boolean}   silent  설정시 Error처리를 하지 않는다.
          * @return	{Element}
          */
-        element: function () {
+        element: function ( silent ) {
             var target = this.target, el;
     
-            if ( typeof target.get === 'function' ) {
-                el = target.get(0);
+            if ( typeof target === 'string' ) {
+                el = $B( document ).selector( target );
             } else {
-                el = ( typeof target === 'string' )? $B( document ).selector( target ) : target;
+                if ( target ) {
+                    //jQuery Object
+                    if ( typeof target.get === 'function' ) {
+                        el = target.get(0);
+                    } else {
+                        el = target;
+                    }
+                }
             }
     
             if ( el ) {
                 this.target = el;
             } else {
                 //warning( '"' + target + '" 와 일치하는 대상이 없습니다.' );
-                throw new Error( '[ixBand] "' + target + '" 와 일치하는 대상이 없습니다.' );
+                if ( !silent ) throw new Error( '[ixBand] "' + target + '" 와 일치하는 대상이 없습니다.' );
             }
             return el;
         },
@@ -557,7 +565,7 @@
         /**
          * 타겟타입:(Selector, Element)<br>
          * target의 해당자식 노드 삭제
-         * @param	{Node, Int}		child	node나 index:0~ 수치가 자식수보다 크거나 작으면 에러발생
+         * @param	{Selector, Element, Int}		child	node나 index:0~ 수치가 자식수보다 크거나 작으면 에러발생
          */
         removeChild: function ( child ) {
             var el = this.element();
@@ -572,9 +580,31 @@
                     warning('.removeChild()에 지정한 수치가 자식수보다 크거나 작습니다!');
                     return;
                 }
+            } else {
+                child = $B( child ).element( true );
             }
     
             el.removeChild( child );
+        },
+    
+        /**
+         * 대상 삭제
+         */
+        remove: function () {
+            var el = this.element();
+            if ( el && el.parentNode ) el.parentNode.removeChild( el );
+        },
+    
+        /**
+         * 대상을 교체
+         * @param	{Selector, Element}   selector
+         * @return  {Element}
+         */
+        replaceWith: function ( selector ) {
+            var el = this.element(),
+                node = $B( selector ).element( true );
+    
+            if ( el && el.parentNode ) el.parentNode.replaceChild( el, node );
         },
     
         /**
@@ -2020,6 +2050,8 @@
             WINDOWS_TABLET: false,
             TABLET: false,
             SMART_PHONE: false,
+            SAMSUNG: nua.indexOf('samsung') > -1,
+            SAMSUNG_VERSION: 0,
             VERSION: 0,//브리우저 버전 (IE의 경우 8~는 DOC_MODE를 참조한다.)
             OS_VERSION: 0,
             WEBKIT_VERSION: 0
@@ -2073,7 +2105,7 @@
         if ( ua.WEBKIT ) ua.WEBKIT_VERSION = getVersion( 'webkit' );
     
         if ( ua.MSIE ) {
-            ua.VERSION = String(ua.DOC_MODE) || ua.IE_VERSION;
+            ua.VERSION = ua.DOC_MODE || ua.IE_VERSION;
         } else if ( ua.CHROME ) {
             ua.VERSION = getVersion( 'chrome' );
         } else if ( ua.FIREFOX ) {
@@ -2091,6 +2123,13 @@
         } else {
             ua.VERSION = getVersion();
         }
+    
+        if ( ua.SAMSUNG ) {
+            ua.SAMSUNG_VERSION = getVersion( 'samsungbrowser' );
+        }
+    
+        ua.SAMSUNG_VERSION += '';
+        ua.VERSION += '';
     
         // 버전이 없으면 '0'을 반환
         function getVersion ( browserName ) {
@@ -3009,22 +3048,22 @@
         function removeAllHandlers (e) {
             var _this = this, id;
     
-            for ( id in _this._ix_allEvents_ ) {
-                var h = _this._ix_allEvents_[id];
+            for ( id in _this.__ix_allEvents__ ) {
+                var h = _this.__ix_allEvents__[id];
                 h.el.detachEvent( 'on' + h.type, h.wrapHandler );
-                delete _this._ix_allEvents_[id];
+                delete _this.__ix_allEvents__[id];
             }
         }
     
         //대상의 모든 이벤트 삭제
         function removeAllEvent ( el, clone ) {
-            if ( el._ix_eventIds_ ) {
-                var ids = el._ix_eventIds_,
+            if ( el.__ix_eventIds__ ) {
+                var ids = el.__ix_eventIds__,
                     eidNum = ids.length, i;
     
                 for ( i = 0; i < eidNum; ++i ) {
                     var id = ids[i],
-                        evt = window._ix_allEvents_[id],
+                        evt = window.__ix_allEvents__[id],
                         type = evt.type,
                         matchEl = ( clone )? true: evt.el == el;
     
@@ -3032,12 +3071,12 @@
                     if ( matchEl ) {
                         Evt._removeEventListener( el, type, evt.wrapHandler );
     
-                        //창마다 하나식 있는 _ix_allEvents_ 객체에서 이벤트정보 삭제
-                        if ( !clone ) delete window._ix_allEvents_[id];
+                        //창마다 하나식 있는 __ix_allEvents__ 객체에서 이벤트정보 삭제
+                        if ( !clone ) delete window.__ix_allEvents__[id];
                     }
                 }
     
-                if ( !clone ) el._ix_eventIds_ = null;
+                if ( !clone ) el.__ix_eventIds__ = null;
             }
         }
     
@@ -3066,7 +3105,7 @@
             add: null,
     
             find: function ( el, type, handler, isAll ) {
-                var eventIds = el._ix_eventIds_;
+                var eventIds = el.__ix_eventIds__;
                 //등록된 _ix_eventIds_가 없으면 -1반환
                 if ( !eventIds ) return -1;
     
@@ -3079,7 +3118,7 @@
                 //가장최근에 등록된 이벤트가 제거될 가능성이 높기때문에 루프를 뒤에서 부터 돈다.
                 for ( i = hNum; i >= 0; --i ) {
                     var hId = eventIds[i],
-                        evt = window._ix_allEvents_[hId];
+                        evt = window.__ix_allEvents__[hId];
     
                     if ( isAll ) {
                         if ( evt.type === type ) {
@@ -3118,8 +3157,8 @@
     
                         for ( var i = 0; i < evtLength; ++i ) {
                             var idx = evts[i],
-                                id = el._ix_eventIds_[idx],
-                                evt = window._ix_allEvents_[id];
+                                id = el.__ix_eventIds__[idx],
+                                evt = window.__ix_allEvents__[id];
     
                             evt.wrapHandler.call( e.el, {
                                 type: evt.type,
@@ -3132,24 +3171,24 @@
             },
     
             remove: function ( el, type, handler ) {
-                //el._ix_eventIds_[] 배열에서 찾는다.
+                //el.__ix_eventIds__[] 배열에서 찾는다.
                 var i = this.find( el, type, handler );
                 if ( i == -1 ) return;
     
-                var id = el._ix_eventIds_[i],
-                    h = window._ix_allEvents_[id];
+                var id = el.__ix_eventIds__[i],
+                    h = window.__ix_allEvents__[id];
     
                 this._removeEventListener( el, type, h.wrapHandler );
     
                 //배열에서 el 제거
-                el._ix_eventIds_.splice( i, 1 );
-                //창마다 하나식 있는 _ix_allEvents_ 객체에서 이벤트정보 삭제
-                delete window._ix_allEvents_[id];
+                el.__ix_eventIds__.splice( i, 1 );
+                //창마다 하나식 있는 __ix_allEvents__ 객체에서 이벤트정보 삭제
+                delete window.__ix_allEvents__[id];
             },
     
             //대상 개체의 해당 타입의 모든 이벤트 삭제
             removeTypeAll: function ( el, type ) {
-                var eventIds = el._ix_eventIds_;
+                var eventIds = el.__ix_eventIds__;
                 //등록된 _ix_eventIds_가 없으면 정지.
                 if ( !eventIds ) return;
     
@@ -3158,14 +3197,14 @@
                 //가장최근에 등록된 이벤트가 제거될 가능성이 높기때문에 루프를 뒤에서 부터 돈다.
                 for ( var i = eventIds.length - 1; i >= 0; --i ) {
                     var id = eventIds[i],
-                        evt = window._ix_allEvents_[id];
+                        evt = window.__ix_allEvents__[id];
     
                     if ( evt.type == type ) {
                         this._removeEventListener( el, type, evt.wrapHandler );
                         //배열에서 el 제거
-                        el._ix_eventIds_.splice( i, 1 );
-                        //창마다 하나식 있는 _ix_allEvents_ 객체에서 이벤트정보 삭제
-                        delete window._ix_allEvents_[id];
+                        el.__ix_eventIds__.splice( i, 1 );
+                        //창마다 하나식 있는 __ix_allEvents__ 객체에서 이벤트정보 삭제
+                        delete window.__ix_allEvents__[id];
                     }
                 }
             },
@@ -3331,11 +3370,11 @@
                 var w = window,
                     id = getEventID();
     
-                if ( !w._ix_allEvents_ ) w._ix_allEvents_ = {};
-                w._ix_allEvents_[id] = h;
+                if ( !w.__ix_allEvents__ ) w.__ix_allEvents__ = {};
+                w.__ix_allEvents__[id] = h;
     
-                if ( !el._ix_eventIds_ ) el._ix_eventIds_ = [];
-                el._ix_eventIds_.push(id);
+                if ( !el.__ix_eventIds__ ) el.__ix_eventIds__ = [];
+                el.__ix_eventIds__.push(id);
             };
     
             // ==================== IE6~8 Browser ==================== //
@@ -3389,11 +3428,11 @@
                 var w = window,
                     id = getEventID();
     
-                if ( !w._ix_allEvents_ ) w._ix_allEvents_ = {};
-                w._ix_allEvents_[id] = h;
+                if ( !w.__ix_allEvents__ ) w.__ix_allEvents__ = {};
+                w.__ix_allEvents__[id] = h;
     
-                if ( !el._ix_eventIds_ ) el._ix_eventIds_ = [];
-                el._ix_eventIds_.push(id);
+                if ( !el.__ix_eventIds__ ) el.__ix_eventIds__ = [];
+                el.__ix_eventIds__.push(id);
     
                 //창과 관련된 onunload 이벤트가 없으면 하나 등록.
                 if ( !w._ix_onunloadHandlerReg_ ) {
@@ -3614,7 +3653,7 @@
          * @return	{Boolean}
          */
         is: function ( target, errorMsg ) {
-            var result = (typeof target === 'string');
+            var result = ( typeof target === 'string' );
     
             if ( errorMsg && !result ) {
                 warning( errorMsg );
@@ -3636,13 +3675,11 @@
          */
         insert: function ( target, addIndex, addText, direction, repeat ) {
             direction = direction || 'right';
-            repeat = (repeat)? 'g' : '';
-            var value = String(target),
+            repeat = ( repeat )? 'g' : '';
+            var value = String( target ),
                 reg = new RegExp( '.{' + addIndex + '}', repeat );
     
-            this.is( value, 'string.insert() ' + MSG_NOT_STRING );
-    
-            if (direction == 'right') {
+            if ( direction == 'right' ) {
                 value = value.replace(reg, function (str) {
                     return str + addText;
                 });
@@ -3668,10 +3705,8 @@
          */
         format: function ( target, cipher, fillStr ) {
             fillStr = fillStr || '0';
-            var str = String(target),
+            var str = String( target ),
                 result = '', addNum = cipher - str.length, i;
-    
-            this.is( str, 'string.format() ' + MSG_NOT_STRING );
     
             for ( i = 0; i < addNum; ++i ) {
                 result += fillStr;
@@ -3685,8 +3720,7 @@
          * @return	{String}	fontSize -> font-size
          */
         hyphenCase: function ( target ) {
-            target = String(target);
-            this.is( target, 'string.hyphenCase() ' + MSG_NOT_STRING );
+            target = String( target );
             return target.replace( /[A-Z]/g, function ( val ) {
                 return '-' + val.toLowerCase();
             });
@@ -3698,8 +3732,7 @@
          * @return	{String}	font-size -> fontSize
          */
         camelCase: function ( target ) {
-            target = String(target);
-            this.is( target, 'string.camelCase() ' + MSG_NOT_STRING );
+            target = String( target );
             return target.replace(/-\b([a-z])/g, function (str) {
                 return str.charAt(1).toUpperCase();
             });
@@ -3711,8 +3744,7 @@
          * @return	{String}
          */
         capitalize: function ( target ) {
-            target = String(target);
-            this.is( target, 'string.capitalize() ' + MSG_NOT_STRING );
+            target = String( target );
             return target.replace(/\b([a-z])/g, function (str) {
                 return str.toUpperCase();
             });
@@ -3730,7 +3762,6 @@
                 regStr = '', langNum = arguments.length, i;
     
             target = String(target);
-            this.is( target, 'string.isLanguage() ' + MSG_NOT_STRING );
     
             for (i = 1; i < langNum; ++i) {
                 switch( arguments[i] ) {
@@ -3761,8 +3792,7 @@
          * @return	{Boolean}
          */
         isWholeWord: function ( target, findStr, flags ) {
-            target = String(target);
-            this.is( target, 'string.isWholeWord() ' + MSG_NOT_STRING );
+            target = String( target );
     
             var num, i, strs, result = false;
     
@@ -3793,8 +3823,6 @@
                 minus = '',
                 temps = [], result = '';
     
-            this.is( str, 'string.numberFormat() ' + MSG_NOT_STRING );
-    
             if (str.charAt(0) == '-') {
                 minus = '-';
                 str = str.substring(1);
@@ -3812,8 +3840,7 @@
          * @return	{String}
          */
         removeTags: function ( target ) {
-            target = String(target);
-            this.is( target, 'string.removeTags() ' + MSG_NOT_STRING );
+            target = String( target );
             return target.replace(/<[^>]+>/g, '');
         },
     
@@ -3823,8 +3850,7 @@
          * @return	{String}
          */
         strrev: function ( target ) {
-            target = String(target);
-            this.is( target, 'string.strrev() ' + MSG_NOT_STRING );
+            target = String( target );
             return target.split('').reverse().join('');
         },
     
@@ -3834,8 +3860,7 @@
          * @return	{String}
          */
         trim: function ( target ) {
-            target = String(target);
-            this.is( target, 'string.trim() ' + MSG_NOT_STRING );
+            target = String( target );
             return ( target )? target.replace(/^\s+/, '').replace(/\s+$/, '') : '';
         },
     
@@ -3852,6 +3877,30 @@
             var result = alphabet + __keyCount.toString( 32 ) + randomStr + randomStr + randomStr + randomStr;
             __keyCount++;
             return result.substr( 0, 15 ) + alphabet;
+        },
+    
+        /**
+         * 문자열을 각 데이타 타입에 맞춰 변환
+         * @param {String}  str
+         * @returns {Boolean, String, Number, Null, Undefined}
+         */
+        convertDataType: function ( str ) {
+            str = String( str );
+    
+            if ( str ) {
+                if ( /^\s*true\s*$/.test(str) ) {
+                    str = Boolean( str );
+                } else if ( /^\s*false\s*$/.test(str) ) {
+                    str = Boolean();
+                } else if ( /^\s*-*[0-9\.]+\s*$/.test(str) ) {
+                    str = Number( str );
+                } else if ( /^\s*null\s*$/.test(str) ) {
+                    str = null;
+                } else if ( /^\s*undefined\s*$/.test(str) ) {
+                    str = undefined;
+                }
+            }
+            return str;
         }
     };
 
@@ -3961,16 +4010,20 @@
     // ############################################################################ //
     
     ixBand.style = {
+        REG_CSS: /([a-zA-Z\-]+)\s*?:\s*?([#\w\-.,\s\/?&:=\(\)%]+);?/g,
+        REG_CSS_VALUE: /\s*?([-\d\.]+|#[\da-fA-F]+)\s*([a-zA-Z\%]+)?/,
+    
         /**
          * 인라인스타일을 설정하거나 반환.
          * @param	{Element}	el			대상 Element
-         * @param	{String}	propStr		"width:100px; z-index:2" 표기법, 설정하지 않으면 cssText반환,
+         * @param	{String}	propStr		"width:100px; z-index:2" 표기법, 설정하지 않으면 cssText반환
+         * @return  {String}
          */
         inline: function ( el, propStr ) {
-            var css = (el && el.style)? el.style.cssText : '';
+            var css = ( el && el.style )? el.style.cssText : '';
     
             //setter
-            if ( propStr ) {
+            if ( $B.string.is(propStr) ) {
                 propStr = $B.string.trim( propStr );
     
                 if ( css && css.charAt( css.length-1 ) != ';' ) css += ';';//Opera에서는 css 속성끝에 ";"처리를 하지 않으면 에러가 난다.
@@ -4115,8 +4168,8 @@
          */
         parse: function ( target ) {
             var props = {};
-            //String(target).replace(/([a-zA-Z\-]+)\s*?:\s*?([#\w\.\-\,\s\/\?\&\:\=\(\)\%]+);?/g, function ( str, n, v ) {
-            String(target).replace(/([a-zA-Z\-]+)\s*?:\s*?([#\w\-.,\s\/?&:=\(\)%]+);?/g, function ( str, n, v ) {
+    
+            String(target).replace( this.REG_CSS, function ( str, n, v ) {
                 var obj = $B.style.parseValue( v );
                 props[ $B.string.camelCase(n) ] = {name: n, value: obj.value, unit: obj.unit};
             });
@@ -4135,11 +4188,20 @@
             if ( val && val.indexOf('(') > -1 ) {
                 result = {value: $B.string.trim(val), unit: ''};
             } else {
-                val.replace(/\s*?([-\d\.]+|#[\da-fA-F]+)([a-zA-Z\%]+)?/, function (str, v, u) {
+                val.replace( this.REG_CSS_VALUE, function (str, v, u) {
                     result = {value: $B.string.trim(v), unit: u || ''};
                 });
             }
             return result;
+        },
+    
+        /**
+         * 인라인 스타일 property를 삭제.
+         * @param	{Element}	el			대상 Element
+         * @param	{String}	property		"z-index" 표기법
+         */
+        remove: function ( el, property ) {
+            if ( el ) $B( el.style ).removeProp( property );
         }
     };
 
@@ -4263,6 +4325,40 @@
                         img.style.filter = 'progid:DXImageTransform.Microsoft.AlphaImageLoader(enabled="true",sizingMethod="scale",src="' + imgSrc + '")';
                     }
                 }
+            }
+        },
+    
+        /**
+         * url의 parameter 의 값을 반환하거나, object를 조합하여 url parameter string으로 반환
+         * @param {String, Object}    value
+         * @return  {*}
+         */
+        urlParam: function ( value ) {
+            if ( $B.isObject(value) ) {
+                var str = location.search;
+    
+                str = ( /^\?[^\?\=]+\=/.test(str) )? str + '&' : '?' + str;
+    
+                for ( var key in value ) {
+                    str += key + '=' + value[key] + '&';
+                }
+    
+                return str.replace( /\&$/, '' );
+            } else {
+                var result = {};
+                location.search.replace( /(\w*)\=([^&]*)/g, $B.bind(function ( str, prop, val ) {
+                    if ( prop ) result[prop] = $B.string.convertDataType( val );
+                }, this));
+    
+                if ( typeof value === 'string' ) {
+                    if ( result[value] ) {
+                        result = result[value];
+                    } else {
+                        result = '';
+                    }
+                }
+    
+                return result;
             }
         }
     };

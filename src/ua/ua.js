@@ -51,6 +51,8 @@ ixBand.ua = (function () {
         WINDOWS_TABLET: false,
         TABLET: false,
         SMART_PHONE: false,
+        SAMSUNG: nua.indexOf('samsung') > -1,
+        SAMSUNG_VERSION: 0,
         VERSION: 0,//브리우저 버전 (IE의 경우 8~는 DOC_MODE를 참조한다.)
         OS_VERSION: 0,
         WEBKIT_VERSION: 0
@@ -104,7 +106,7 @@ ixBand.ua = (function () {
     if ( ua.WEBKIT ) ua.WEBKIT_VERSION = getVersion( 'webkit' );
 
     if ( ua.MSIE ) {
-        ua.VERSION = String(ua.DOC_MODE) || ua.IE_VERSION;
+        ua.VERSION = ua.DOC_MODE || ua.IE_VERSION;
     } else if ( ua.CHROME ) {
         ua.VERSION = getVersion( 'chrome' );
     } else if ( ua.FIREFOX ) {
@@ -122,6 +124,13 @@ ixBand.ua = (function () {
     } else {
         ua.VERSION = getVersion();
     }
+
+    if ( ua.SAMSUNG ) {
+        ua.SAMSUNG_VERSION = getVersion( 'samsungbrowser' );
+    }
+
+    ua.SAMSUNG_VERSION += '';
+    ua.VERSION += '';
 
     // 버전이 없으면 '0'을 반환
     function getVersion ( browserName ) {

@@ -5,16 +5,20 @@
 // ############################################################################ //
 
 ixBand.style = {
+    REG_CSS: /([a-zA-Z\-]+)\s*?:\s*?([#\w\-.,\s\/?&:=\(\)%]+);?/g,
+    REG_CSS_VALUE: /\s*?([-\d\.]+|#[\da-fA-F]+)\s*([a-zA-Z\%]+)?/,
+
     /**
      * 인라인스타일을 설정하거나 반환.
      * @param	{Element}	el			대상 Element
-     * @param	{String}	propStr		"width:100px; z-index:2" 표기법, 설정하지 않으면 cssText반환,
+     * @param	{String}	propStr		"width:100px; z-index:2" 표기법, 설정하지 않으면 cssText반환
+     * @return  {String}
      */
     inline: function ( el, propStr ) {
-        var css = (el && el.style)? el.style.cssText : '';
+        var css = ( el && el.style )? el.style.cssText : '';
 
         //setter
-        if ( propStr ) {
+        if ( $B.string.is(propStr) ) {
             propStr = $B.string.trim( propStr );
 
             if ( css && css.charAt( css.length-1 ) != ';' ) css += ';';//Opera에서는 css 속성끝에 ";"처리를 하지 않으면 에러가 난다.
@@ -159,8 +163,8 @@ ixBand.style = {
      */
     parse: function ( target ) {
         var props = {};
-        //String(target).replace(/([a-zA-Z\-]+)\s*?:\s*?([#\w\.\-\,\s\/\?\&\:\=\(\)\%]+);?/g, function ( str, n, v ) {
-        String(target).replace(/([a-zA-Z\-]+)\s*?:\s*?([#\w\-.,\s\/?&:=\(\)%]+);?/g, function ( str, n, v ) {
+
+        String(target).replace( this.REG_CSS, function ( str, n, v ) {
             var obj = $B.style.parseValue( v );
             props[ $B.string.camelCase(n) ] = {name: n, value: obj.value, unit: obj.unit};
         });
@@ -179,10 +183,19 @@ ixBand.style = {
         if ( val && val.indexOf('(') > -1 ) {
             result = {value: $B.string.trim(val), unit: ''};
         } else {
-            val.replace(/\s*?([-\d\.]+|#[\da-fA-F]+)([a-zA-Z\%]+)?/, function (str, v, u) {
+            val.replace( this.REG_CSS_VALUE, function (str, v, u) {
                 result = {value: $B.string.trim(v), unit: u || ''};
             });
         }
         return result;
+    },
+
+    /**
+     * 인라인 스타일 property를 삭제.
+     * @param	{Element}	el			대상 Element
+     * @param	{String}	property		"z-index" 표기법
+     */
+    remove: function ( el, property ) {
+        if ( el ) $B( el.style ).removeProp( property );
     }
 };
