@@ -5814,11 +5814,16 @@
      * Event Property : type, target, currentTarget, axis:(vertical, horizontal), pageX, pageY, direction:(left, right, top, bottom, none)
      * @constructor
      * @param	{Element, Selector, jQuery}	target		터치이벤트 발생시킬 대상, 내장함수 querySelector() 로 구현되어졌다, 단일개체. http://www.w3.org/TR/css3-selectors/#link
+     * @param   {Object}    options
+     *      - {Boolean} preventDefault  safari v10 에서 세로축 touchstart를 막고 싶을때만 설정한다.
      */
     ixBand.event.GestureAxis = $B.Class.extend({
-        initialize: function ( target, option ) {
+        initialize: function ( target, options ) {
             this._target = $B( target ).element();
-            this._aType = ( option )? option.aType : 'auto';
+            this._options = options || {};
+            this._aType = ( this._options.aType )? this._options.aType : 'auto';
+            //safari v10 에서 세로축 touchstart를 막고 싶을때만 사용한다.
+            this._preventDefault = this._options.preventDefault || false;
             this._startX = 0;
             this._startY = 0;
             this._moveCount = 0;
@@ -5863,6 +5868,7 @@
                 switch ( e.type ) {
                     case 'touchstart':
                         e.stopPropagation();
+                        if ( this._preventDefault ) e.preventDefault();
     
                         this._moveCount = 0;
                         this._startX = pageX;
@@ -6840,7 +6846,9 @@
      * @class	{Swipe}
      * @constructor
      * @param	{Element, Selector, jQuery}	target		터치이벤트 발생시킬 대상, 내장함수 querySelector() 로 구현되어졌다, 단일개체. http://www.w3.org/TR/css3-selectors/#link
-     * @param	{String}			axis		axis : vertical, horizontal, auto, (기본값 = 'horizontal')
+     * @param	{Object}	options
+     *      - {String}	axis		axis : vertical, horizontal, auto, (기본값 = 'horizontal')
+     *      - {Boolean} preventDefault  safari v10 에서 세로축 touchstart를 막고 싶을때만 설정한다.
      */
     ixBand.event.Swipe = $B.Class.extend({
         SWIPE_BASE_W: 40,//swipe 판별 기준 px
@@ -6850,9 +6858,10 @@
         _sensitiveV: 1,
         _enable: true,
     
-        initialize: function ( target, axis ) {
+        initialize: function ( target, options ) {
             this._target = $B( target ).element();
-            this._aType = axis || 'horizontal';
+            this._options = options || {};
+            this._aType = this._options.axis || 'horizontal';
             this._startX = 0;
             this._startY = 0;
             this._moveX = 0;
@@ -6945,7 +6954,10 @@
             this._winTouchEvent = new $B.event.TouchEvent( window );
     
             //Axis을 이용하여 제스추어 방향 알아내기
-            this._gAxis = new $B.event.GestureAxis( this._target, {aType: this._aType});
+            this._gAxis = new $B.event.GestureAxis( this._target, {
+                aType: this._aType,
+                preventDefault: this._options.preventDefault
+            });
             this._gAxis.addListener( 'axis', $B.bind(function (e) {
                 if ( !this._enable ) return this._winTouchEvent.removeListener();
                 this.dispatch( 'axis', e );
