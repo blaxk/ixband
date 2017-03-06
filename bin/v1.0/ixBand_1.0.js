@@ -1,7 +1,7 @@
 /**
  * ixBand - Javascript Library
  * @package	{ixBand}
- * @version v1.0.0 - 170222 (blaxk)
+ * @version v1.0.0 - 170306 (blaxk)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -1059,25 +1059,47 @@
          * <b>읽기전용</b>
          * 타겟타입:(Selector, Element)
          * Padding, Border, 스크롤바가 포함된 가로사이즈 반환
+         * @param   {Boolean}   includeMargin   margin 포함여부
          * @return	{Number}
          */
-        outerWidth: function () {
-            var el = this.element();
+        outerWidth: function ( includeMargin ) {
+            var el = this.element(),
+                margin = 0;
+    
             if ( el === document || el === window || el === screen ) return 0;
     
-            return el.offsetWidth;
+            if ( includeMargin === true ) {
+                var marginL = parseFloat( $B(el).css('margin-left') ),
+                    marginR = parseFloat( $B( el ).css('margin-right') );
+    
+                if ( marginL ) margin += marginL;
+                if ( marginR ) margin += marginR;
+            }
+    
+            return el.offsetWidth + margin;
         },
         /**
          * <b>읽기전용</b>
          * 타겟타입:(Selector, Element)
          * Padding, Border, 스크롤바 포함된 세로사이즈 반환
+         * @param   {Boolean}   includeMargin   margin 포함여부
          * @return	{Number}
          */
-        outerHeight: function () {
-            var el = this.element();
+        outerHeight: function ( includeMargin ) {
+            var el = this.element(),
+                margin = 0;
+    
             if ( el === document || el === window || el === screen ) return 0;
     
-            return el.offsetHeight;
+            if ( includeMargin === true ) {
+                var marginT = parseFloat( $B(el).css('margin-top') ),
+                    marginB = parseFloat( $B( el ).css('margin-bottom') );
+    
+                if ( marginT ) margin += marginT;
+                if ( marginB ) margin += marginB;
+            }
+    
+            return el.offsetHeight + margin;
         },
         /**
          * <b>읽기전용</b><br>
@@ -1123,7 +1145,7 @@
     
                     if ( el === window || el === document ) {
                         //setter
-                        if ( value === 'number' ) {
+                        if ( typeof value === 'number' ) {
                             window.scrollTo( value, window.pageYOffset );
                             //getter
                         } else {
@@ -1201,6 +1223,7 @@
             }
             return this.scrollTop( value );
         },
+    
     
         // ========================== < Utilis > ========================== //
     
@@ -1305,7 +1328,7 @@
             var el = this.element();
     
             //setter
-            if ( html || html == 0) {
+            if ( html || html == 0 ) {
                 el.innerHTML = String(html);
                 //getter
             } else {
@@ -1954,12 +1977,17 @@
         var EXCEPTION_REG = new RegExp( '^(__parentClass__|__className__|__extends__)$' );
     
         var _parent = this,
-            _className = ( typeof className === 'string' )? className : '$B.Class_' + __classCount++;
+            _className = ( typeof className === 'string' )? className : '$B.Class_' + __classCount++,
+            _properties = {};
     
         if ( typeof methods === 'object' ) {
             var Class = function () {
                 this.__uId__ = $B.string.unique();
                 this.__eventPool__ = {};
+    
+                for ( var key in _properties ) {
+                    this[key] = deepClone( _properties[key] );
+                }
     
                 if ( typeof this.initialize === 'function' ) {
                     this.initialize.apply( this, arguments );
@@ -1976,17 +2004,28 @@
     
             for ( var key in this.prototype ) {
                 if ( !EXCEPTION_REG.test(key) ) {
-                    Class.prototype[key] = deepClone( this.prototype[key] );
+                    var prop = this.prototype[key];
+                    Class.prototype[key] = prop;
+    
+                    if ( !$B.isFunction(prop) ) {
+                        _properties[key] = prop;
+                    }
                 }
             }
     
             for ( var key in methods ) {
                 if ( !EXCEPTION_REG.test(key) ) {
+                    var prop = methods[key];
+    
                     if ( Class.prototype.hasOwnProperty(key) ) {
                         overwride += overwride? ', ' + key : key;
                     }
     
-                    Class.prototype[key] = methods[key];
+                    Class.prototype[key] = prop;
+    
+                    if ( !$B.isFunction(prop) ) {
+                        _properties[key] = prop;
+                    }
                 }
             }
     
@@ -2017,7 +2056,7 @@
             IE_VERSION: 0,
             DOC_MODE: docMode || 0,
             MSIE: false,
-            EDGE: nua.indexOf('edge') > -1,
+            EDGE: nua.indexOf( 'edge' ) > -1,
             IE7_LT: false,//ie7미만 (~6)
             IE8_LT: false,//ie8미만 (~7)
             IE9_LT: false,//ie9미만 (~8)
@@ -2029,28 +2068,28 @@
             DOC_MODE_IE11_LT: false,//문서모드 11미만
             DOC_MODE_IE12_LT: false,//문서모드 12미만
             IE_COMPATIBLE: false,//호환성모드
-            SAFARI: nua.indexOf('safari') > -1 && nua.indexOf('chrome') == -1 && !isLinuxPlatform,
-            FIREFOX: nua.indexOf('firefox') > -1 && !/compatible|webkit/.test(nua),
-            OPERA: /\b(opera|opr)/.test(nua),
-            OPERA_MINI: /\b(opera mini)/.test(nua),
-            CHROME: nua.indexOf('chrome') > -1,
-            MOBILE_IOS: /ipod|iphone|ipad/.test(nua) && !isWindows && !isLinuxPlatform,
-            IPHONE: nua.indexOf('iphone') > -1 && !isWindows && !isLinuxPlatform,
-            IPAD: nua.indexOf('ipad') > -1 && !isWindows && !isLinuxPlatform,
-            ANDROID: nua.indexOf('android') > -1 && !isWindows,
-            MAC: nua.indexOf('mac') > -1 && !isWindows && !isLinuxPlatform,
+            SAFARI: nua.indexOf( 'safari' ) > -1 && nua.indexOf( 'chrome' ) == -1 && !isLinuxPlatform,
+            FIREFOX: nua.indexOf( 'firefox' ) > -1 && !/compatible|webkit/.test( nua ),
+            OPERA: /\b(opera|opr)/.test( nua ),
+            OPERA_MINI: /\b(opera mini)/.test( nua ),//이슈가 너무 많아 구분만 한다.
+            CHROME: nua.indexOf( 'chrome' ) > -1,
+            MOBILE_IOS: /ipod|iphone|ipad/.test( nua ) && !isWindows && !isLinuxPlatform,
+            IPHONE: nua.indexOf( 'iphone' ) > -1 && !isWindows && !isLinuxPlatform,
+            IPAD: nua.indexOf( 'ipad' ) > -1 && !isWindows && !isLinuxPlatform,
+            ANDROID: nua.indexOf( 'android' ) > -1 && !isWindows,
+            MAC: nua.indexOf( 'mac' ) > -1 && !isWindows && !isLinuxPlatform,
             WINDOWS: isWindows,
-            WINDOWS_PHONE: nua.indexOf('windows phone') > -1 && isWindows,
-            LINUX: nua.indexOf('linux') > -1,
-            WEBKIT: nua.indexOf('webkit') > -1,
-            MOZILLA: nua.indexOf('mozilla') > -1,
-            TOUCH_DEVICE: ('ontouchstart' in window) || nua.indexOf('touch') > -1,
-            MOBILE: nua.indexOf('mobile') > -1,
+            WINDOWS_PHONE: nua.indexOf( 'windows phone' ) > -1 && isWindows,
+            LINUX: nua.indexOf( 'linux' ) > -1,
+            WEBKIT: nua.indexOf( 'webkit' ) > -1,
+            MOZILLA: nua.indexOf( 'mozilla' ) > -1,
+            TOUCH_DEVICE: ( 'ontouchstart' in window ) || nua.indexOf( 'touch' ) > -1,
+            MOBILE: nua.indexOf( 'mobile' ) > -1,
             ANDROID_TABLET: false,
             WINDOWS_TABLET: false,
             TABLET: false,
             SMART_PHONE: false,
-            SAMSUNG: nua.indexOf('samsung') > -1,
+            SAMSUNG: nua.indexOf( 'samsung' ) > -1,
             SAMSUNG_VERSION: 0,
             VERSION: 0,//브리우저 버전 (IE의 경우 8~는 DOC_MODE를 참조한다.)
             OS_VERSION: 0,
@@ -2097,6 +2136,7 @@
     
         if ( ua.EDGE ) {
             ua.TOUCH_DEVICE = navigator.pointerEnabled || navigator.msPointerEnabled;
+            ua.TOUCH_DEVICE = ua.TOUCH_DEVICE && navigator.maxTouchPoints > 0;
         }
     
         var osMatch = nua.match( /(mac os x|os|windows phone|windows nt|android)\s([0-9\._]+)/i );
@@ -2125,11 +2165,11 @@
         }
     
         if ( ua.SAMSUNG ) {
-            ua.SAMSUNG_VERSION = getVersion( 'samsungbrowser' );
+            ua.SAMSUNG_VERSION = getVersion( 'samsungbrowser' ) || getVersion();
         }
     
-        ua.SAMSUNG_VERSION += '';
-        ua.VERSION += '';
+        if ( ua.SAMSUNG_VERSION ) ua.SAMSUNG_VERSION += '';
+        if ( ua.VERSION ) ua.VERSION += '';
     
         // 버전이 없으면 '0'을 반환
         function getVersion ( browserName ) {
@@ -2986,7 +3026,7 @@
     
         /**
          * 보색 반환.
-         * @param	{String}	fromColor	"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
+         * @param	{String}	color	"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
          * @param	{String}	type		반환 받을 Color Type, "hex", "rgb", "rgba", 기본값은 지정한 color값의 type (~IE8 에서는 rgba를 지원하지 않는다.)
          * @return	{Color}		예) #ffffff
          */
@@ -2998,7 +3038,7 @@
     
         /**
          * 회색톤 반환.
-         * @param	{String}	fromColor	"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
+         * @param	{String}	color	"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
          * @param	{String}	type		반환 받을 Color Type, "hex", "rgb", "rgba", 기본값은 지정한 color값의 type (~IE8 에서는 rgba를 지원하지 않는다.)
          * @return	{Color}		예) #ffffff
          */
@@ -3007,6 +3047,16 @@
                 grayscale = Math.round( (colorObj.r + colorObj.g + colorObj.b) / 3 );
     
             return this.convert( 'rgba(' + grayscale + ',' + grayscale + ','+ grayscale + ',' + colorObj.a + ')', type );
+        },
+    
+        /**
+         * 칼라의 밝기값 반환, 밝을수록 255에 가깝다.
+         * @param	{String}	color	"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
+         * @return	{Number}		0 ~ 255
+         */
+        brighteness: function ( color ) {
+            var colorObj = this.toRgb( color, true );
+            return ( (colorObj.r * 299) + (colorObj.g * 587) + (colorObj.b * 114) ) / 1000;
         }
     };
 
@@ -6598,6 +6648,184 @@
             });
         }
     }, '$B.event.Rotation');
+
+
+    // ============================================================== //
+    // =====================	ScrollEnd		===================== //
+    // ============================================================== //
+    
+    /**
+     * 대상영역의 ScrollEnd 이벤트
+     * Event : scrolltop, scrollrignt, scrollbottom, scrollleft, scroll
+     * Event Property : type, target, currentTarget
+     * @constructor
+     * @param	{Element, Selector, jQuery}	target		터치이벤트 발생시킬 대상, 내장함수 querySelector() 로 구현되어졌다, 단일개체. http://www.w3.org/TR/css3-selectors/#link
+     * @param   {Object}    options
+     *      - {Boolean}     noneScrollDispatchEvent     콘텐츠가 부모영역보다 짧아 스크롤이 발생되지 않는시점에 이벤트를 받을지 여부 설정
+     */
+    ixBand.event.ScrollEnd = $B.Class.extend({
+        _enable: false,
+        _gap: {left: 0, right: 0, top: 0, bottom: 0},
+        _active: {scrollleft: false, scrollright: false, scrolltop: false, scrollbottom: false},
+    
+        initialize: function ( target, options ) {
+            this._target = $B( target ).element();
+            this._options = options || {};
+    
+            if ( this._target === window || this._target === document ) {
+                this._winTarget = true;
+            }
+    
+            this._scrollX = -1;
+            this._scrollY = -1;
+            this._setEvents();
+            return this;
+        },
+    
+        // ===============	Public Methods	=============== //
+    
+        /**
+         * 이벤트를 발생시키는 시점을 조절할 수치 설정
+         * @param {Object}  values  {left, right, top, bottom}
+         */
+        gap: function ( values ) {
+            if ( $B.isObject(values) ) {
+                for ( var key in values ) {
+                    var val = values[key];
+    
+                    if ( this._gap.hasOwnProperty(key) && typeof val === 'number' ) {
+                        if ( val > 0 ) {
+                            this._gap[key] = val;
+                        } else {
+                            this._gap[key] = 0;
+                        }
+                    }
+                }
+            }
+    
+            return this;
+        },
+    
+        enable: function () {
+            if ( this._enable ) return this;
+            $B( this._target ).addEvent( 'scroll', this._scrollHandler );
+            this._enable = true;
+            return this;
+        },
+    
+        //비활성화
+        disable: function () {
+            if ( !this._enable ) return this;
+            $B( this._target ).removeEvent( 'scroll', this._scrollHandler );
+            this._enable = false;
+            return this;
+        },
+    
+        /**
+         * 강제로 실행시켜 해당 조건에 부합되면 이벤트를 발생시킨다.
+         * @param {String}  type    발생시킬 event type, 설정하지 않으면 등록된 모든이벤트를 대상으로 한다.
+         */
+        trigger: function ( type ) {
+            var scrollX = $B( this._target ).scrollLeft(),
+                scrollY = $B( this._target ).scrollTop(),
+                scrollW = this._getTargetSize( 'width' ),
+                scrollH = this._getTargetSize( 'height' );
+    
+            if ( this._scrollY != scrollY && scrollH > 0 ) {
+                this._scrollY = scrollY;
+    
+                if ( type === 'scrolltop' ) {
+                    this._dispatch( type, scrollY, this._gap.top );
+                } else if ( type === 'scrollbottom' ) {
+                    this._dispatch( type, scrollY, this._gap.top );
+                } else {
+                    this._dispatch( 'scrolltop', scrollY, this._gap.top );
+                    this._dispatch( 'scrollbottom', scrollY, scrollH - this._gap.bottom );
+                }
+            }
+    
+            if ( this._scrollX != scrollX && scrollW > 0 ) {
+                this._scrollX = scrollX;
+    
+                if ( type === 'scrollleft' ) {
+                    this._dispatch( type, scrollX, this._gap.left );
+                } else if ( type === 'scrollright' ) {
+                    this._dispatch( type, scrollX, scrollW - this._gap.right );
+                } else {
+                    this._dispatch( 'scrollleft', scrollX, this._gap.left );
+                    this._dispatch( 'scrollright', scrollX, scrollW - this._gap.right );
+                }
+            }
+    
+            return this;
+        },
+    
+        /**
+         * 내부의 컨텐츠가 스크롤이 발생하지 않을만큼 짧은 컨텐츠인지 여부 반환
+         * scrollleft, scrollright는 가로사이즈, scrolltop, scrollbottom은 세로사이즈를 체크하여 반환
+         * @param {String}  type    체크할 event type
+         * @returns {Boolean}
+         */
+        isLessContent: function ( type ) {
+            var scrollW = this._getTargetSize( 'width' ),
+                scrollH = this._getTargetSize( 'height' ),
+                result = false;
+    
+            if ( type === 'scrollleft' || type === 'scrollright' ) {
+                result = !( scrollW > 0 );
+            } else if ( type === 'scrolltop' || type === 'scrollbottom' ) {
+                result = !( scrollH > 0 );
+            }
+    
+            return result;
+        },
+    
+        //이벤트 및 기본설정 삭제
+        clear: function () {
+            this.disable();
+            return this;
+        },
+    
+        // ===============	Private Methods	=============== //
+    
+        _setEvents: function () {
+            this._scrollHandler = $B.bind(function (e) {
+                this.trigger();
+            }, this);
+    
+            this.enable();
+        },
+    
+        _getTargetSize: function ( type ) {
+            var result = 0,
+                prop = $B.string.capitalize( type );
+    
+            if ( this._winTarget ) {
+                result = $B.measure['document' + prop]() - $B.measure['window' + prop]();
+            } else {
+                result = this._target['scroll' + prop] - this._target['client' + prop];
+            }
+    
+            return result;
+        },
+    
+        _dispatch: function ( type, pos, base ) {
+            var isActivePos = false;
+    
+            if ( type === 'scrollleft' || type === 'scrolltop' ) {
+                isActivePos = pos <= base;
+            } else {
+                isActivePos = pos >= base;
+            }
+    
+            if ( !this._active[type] && isActivePos ) {
+                this._active[type] = true;
+                this.dispatch( type, {target: this._target, currentTarget: this._target} );
+            } else if ( !isActivePos ) {
+                this._active[type] = false;
+            }
+        }
+    }, '$B.event.ScrollEnd');
 
 
     // ============================================================== //

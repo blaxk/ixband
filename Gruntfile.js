@@ -54,6 +54,7 @@ module.exports = function ( grunt ) {
                     'src/event/ParallaxScroll.js',
                     'src/event/Responsive.js',
                     'src/event/Rotation.js',
+                    'src/event/ScrollEnd.js',
                     'src/event/Swipe.js',
                     'src/geom/Matrix.js',
                     'src/geom/Matrix3D.js',

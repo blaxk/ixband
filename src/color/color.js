@@ -485,7 +485,7 @@ ixBand.color = {
 
     /**
      * 보색 반환.
-     * @param	{String}	fromColor	"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
+     * @param	{String}	color	"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
      * @param	{String}	type		반환 받을 Color Type, "hex", "rgb", "rgba", 기본값은 지정한 color값의 type (~IE8 에서는 rgba를 지원하지 않는다.)
      * @return	{Color}		예) #ffffff
      */
@@ -497,7 +497,7 @@ ixBand.color = {
 
     /**
      * 회색톤 반환.
-     * @param	{String}	fromColor	"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
+     * @param	{String}	color	"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
      * @param	{String}	type		반환 받을 Color Type, "hex", "rgb", "rgba", 기본값은 지정한 color값의 type (~IE8 에서는 rgba를 지원하지 않는다.)
      * @return	{Color}		예) #ffffff
      */
@@ -506,5 +506,15 @@ ixBand.color = {
             grayscale = Math.round( (colorObj.r + colorObj.g + colorObj.b) / 3 );
 
         return this.convert( 'rgba(' + grayscale + ',' + grayscale + ','+ grayscale + ',' + colorObj.a + ')', type );
+    },
+
+    /**
+     * 칼라의 밝기값 반환, 밝을수록 255에 가깝다.
+     * @param	{String}	color	"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
+     * @return	{Number}		0 ~ 255
+     */
+    brighteness: function ( color ) {
+        var colorObj = this.toRgb( color, true );
+        return ( (colorObj.r * 299) + (colorObj.g * 587) + (colorObj.b * 114) ) / 1000;
     }
 };

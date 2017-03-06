@@ -623,25 +623,47 @@ var _dom = {
      * <b>읽기전용</b>
      * 타겟타입:(Selector, Element)
      * Padding, Border, 스크롤바가 포함된 가로사이즈 반환
+     * @param   {Boolean}   includeMargin   margin 포함여부
      * @return	{Number}
      */
-    outerWidth: function () {
-        var el = this.element();
+    outerWidth: function ( includeMargin ) {
+        var el = this.element(),
+            margin = 0;
+
         if ( el === document || el === window || el === screen ) return 0;
 
-        return el.offsetWidth;
+        if ( includeMargin === true ) {
+            var marginL = parseFloat( $B(el).css('margin-left') ),
+                marginR = parseFloat( $B( el ).css('margin-right') );
+
+            if ( marginL ) margin += marginL;
+            if ( marginR ) margin += marginR;
+        }
+
+        return el.offsetWidth + margin;
     },
     /**
      * <b>읽기전용</b>
      * 타겟타입:(Selector, Element)
      * Padding, Border, 스크롤바 포함된 세로사이즈 반환
+     * @param   {Boolean}   includeMargin   margin 포함여부
      * @return	{Number}
      */
-    outerHeight: function () {
-        var el = this.element();
+    outerHeight: function ( includeMargin ) {
+        var el = this.element(),
+            margin = 0;
+
         if ( el === document || el === window || el === screen ) return 0;
 
-        return el.offsetHeight;
+        if ( includeMargin === true ) {
+            var marginT = parseFloat( $B(el).css('margin-top') ),
+                marginB = parseFloat( $B( el ).css('margin-bottom') );
+
+            if ( marginT ) margin += marginT;
+            if ( marginB ) margin += marginB;
+        }
+
+        return el.offsetHeight + margin;
     },
     /**
      * <b>읽기전용</b><br>
@@ -687,7 +709,7 @@ var _dom = {
 
                 if ( el === window || el === document ) {
                     //setter
-                    if ( value === 'number' ) {
+                    if ( typeof value === 'number' ) {
                         window.scrollTo( value, window.pageYOffset );
                         //getter
                     } else {
@@ -765,6 +787,7 @@ var _dom = {
         }
         return this.scrollTop( value );
     },
+
 
     // ========================== < Utilis > ========================== //
 
@@ -869,7 +892,7 @@ var _dom = {
         var el = this.element();
 
         //setter
-        if ( html || html == 0) {
+        if ( html || html == 0 ) {
             el.innerHTML = String(html);
             //getter
         } else {

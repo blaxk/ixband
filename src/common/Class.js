@@ -32,12 +32,17 @@ ixBand.Class.extend = function ( methods, className ) {
     var EXCEPTION_REG = new RegExp( '^(__parentClass__|__className__|__extends__)$' );
 
     var _parent = this,
-        _className = ( typeof className === 'string' )? className : '$B.Class_' + __classCount++;
+        _className = ( typeof className === 'string' )? className : '$B.Class_' + __classCount++,
+        _properties = {};
 
     if ( typeof methods === 'object' ) {
         var Class = function () {
             this.__uId__ = $B.string.unique();
             this.__eventPool__ = {};
+
+            for ( var key in _properties ) {
+                this[key] = deepClone( _properties[key] );
+            }
 
             if ( typeof this.initialize === 'function' ) {
                 this.initialize.apply( this, arguments );
@@ -54,17 +59,28 @@ ixBand.Class.extend = function ( methods, className ) {
 
         for ( var key in this.prototype ) {
             if ( !EXCEPTION_REG.test(key) ) {
-                Class.prototype[key] = deepClone( this.prototype[key] );
+                var prop = this.prototype[key];
+                Class.prototype[key] = prop;
+
+                if ( !$B.isFunction(prop) ) {
+                    _properties[key] = prop;
+                }
             }
         }
 
         for ( var key in methods ) {
             if ( !EXCEPTION_REG.test(key) ) {
+                var prop = methods[key];
+
                 if ( Class.prototype.hasOwnProperty(key) ) {
                     overwride += overwride? ', ' + key : key;
                 }
 
-                Class.prototype[key] = methods[key];
+                Class.prototype[key] = prop;
+
+                if ( !$B.isFunction(prop) ) {
+                    _properties[key] = prop;
+                }
             }
         }
 
