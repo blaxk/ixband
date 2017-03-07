@@ -26,14 +26,24 @@ ixBand.measure = {
      * @return	{Number}
      */
     windowWidth: function () {
-        return document.documentElement.clientWidth;
+        if ( window.innerWidth ) {
+            this.windowWidth = function () { return window.innerWidth; };
+        } else {
+            this.windowWidth = function () { return document.documentElement.clientWidth; };
+        }
+        return this.windowWidth();
     },
     /**
      * Viewport 세로사이즈 반환 (메뉴바, 툴바, 스크롤바를 제외)
      * @return	{Number}
      */
     windowHeight: function () {
-        return document.documentElement.clientHeight;
+        if ( window.innerHeight ) {
+            this.windowHeight = function () { return window.innerHeight; };
+        } else {
+            this.windowHeight = function () { return document.documentElement.clientHeight; };
+        }
+        return this.windowHeight();
     },
     /**
      * Windows 바탕화면에서 브라우져 X좌표

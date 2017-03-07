@@ -587,9 +587,9 @@ var _dom = {
      */
     innerWidth: function () {
         var el = this.element();
-        if ( el === document || el === window ) return 0;
-
-        if ( this.element() === screen ) {
+        if ( el === document || el === window ) {
+            return $B.measure.windowWidth();
+        } else if ( el === screen ) {
             return screen.availWidth;
         } else {
             var pl, pr, value = this.width();
@@ -607,9 +607,9 @@ var _dom = {
      */
     innerHeight: function () {
         var el = this.element();
-        if ( el === document || el === window ) return 0;
-
-        if ( el === screen ) {
+        if ( el === document || el === window ) {
+            return $B.measure.windowHeight();
+        } else if ( el === screen ) {
             return screen.availHeight;
         } else {
             var pt, pb, value = this.height();
@@ -630,17 +630,27 @@ var _dom = {
         var el = this.element(),
             margin = 0;
 
-        if ( el === document || el === window || el === screen ) return 0;
+        if ( el === window ) {
+            if ( window.outerWidth ) {
+                return window.outerWidth;
+            } else {
+                return $B.measure.windowWidth();
+            }
+        } else if ( el === document ) {
+            return $B.measure.documentWidth();
+        } else if ( el === screen ) {
+            return screen.width;
+        } else {
+            if ( includeMargin === true ) {
+                var marginL = parseFloat( $B(el).css('margin-left') ),
+                    marginR = parseFloat( $B(el).css('margin-right') );
 
-        if ( includeMargin === true ) {
-            var marginL = parseFloat( $B(el).css('margin-left') ),
-                marginR = parseFloat( $B( el ).css('margin-right') );
+                if ( marginL ) margin += marginL;
+                if ( marginR ) margin += marginR;
+            }
 
-            if ( marginL ) margin += marginL;
-            if ( marginR ) margin += marginR;
+            return el.offsetWidth + margin;
         }
-
-        return el.offsetWidth + margin;
     },
     /**
      * <b>읽기전용</b>
@@ -653,17 +663,27 @@ var _dom = {
         var el = this.element(),
             margin = 0;
 
-        if ( el === document || el === window || el === screen ) return 0;
+        if ( el === window ) {
+            if ( window.outerHeight ) {
+                return window.outerHeight;
+            } else {
+                return $B.measure.windowHeight();
+            }
+        } else if ( el === document ) {
+            return $B.measure.documentHeight();
+        } else if ( el === screen ) {
+            return screen.height;
+        } else {
+            if ( includeMargin === true ) {
+                var marginT = parseFloat( $B( el ).css( 'margin-top' ) ),
+                    marginB = parseFloat( $B( el ).css( 'margin-bottom' ) );
 
-        if ( includeMargin === true ) {
-            var marginT = parseFloat( $B(el).css('margin-top') ),
-                marginB = parseFloat( $B( el ).css('margin-bottom') );
+                if ( marginT ) margin += marginT;
+                if ( marginB ) margin += marginB;
+            }
 
-            if ( marginT ) margin += marginT;
-            if ( marginB ) margin += marginB;
+            return el.offsetHeight + margin;
         }
-
-        return el.offsetHeight + margin;
     },
     /**
      * <b>읽기전용</b><br>

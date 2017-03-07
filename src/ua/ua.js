@@ -55,7 +55,8 @@ ixBand.ua = (function () {
         SAMSUNG_VERSION: 0,
         VERSION: 0,//브리우저 버전 (IE의 경우 8~는 DOC_MODE를 참조한다.)
         OS_VERSION: 0,
-        WEBKIT_VERSION: 0
+        WEBKIT_VERSION: 0,
+        CHROME_VERSION: 0 //크롬엔진 버전
     };
 
     ua.CHROME = ua.CHROME && !ua.SAFARI && !ua.OPERA && !ua.EDGE;
@@ -132,6 +133,8 @@ ixBand.ua = (function () {
 
     if ( ua.SAMSUNG_VERSION ) ua.SAMSUNG_VERSION += '';
     if ( ua.VERSION ) ua.VERSION += '';
+
+    ua.CHROME_VERSION = getVersion( 'chrome' );
 
     // 버전이 없으면 '0'을 반환
     function getVersion ( browserName ) {

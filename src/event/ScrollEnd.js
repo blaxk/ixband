@@ -4,28 +4,33 @@
 
 /**
  * 대상영역의 ScrollEnd 이벤트
- * Event : scrolltop, scrollrignt, scrollbottom, scrollleft, scroll
+ * Event : scrolltop, scrollrignt, scrollbottom, scrollleft
  * Event Property : type, target, currentTarget
  * @constructor
  * @param	{Element, Selector, jQuery}	target		터치이벤트 발생시킬 대상, 내장함수 querySelector() 로 구현되어졌다, 단일개체. http://www.w3.org/TR/css3-selectors/#link
- * @param   {Object}    options
- *      - {Boolean}     noneScrollDispatchEvent     콘텐츠가 부모영역보다 짧아 스크롤이 발생되지 않는시점에 이벤트를 받을지 여부 설정
  */
 ixBand.event.ScrollEnd = $B.Class.extend({
     _enable: false,
+    _correctSize: 0,
     _gap: {left: 0, right: 0, top: 0, bottom: 0},
     _active: {scrollleft: false, scrollright: false, scrolltop: false, scrollbottom: false},
 
-    initialize: function ( target, options ) {
+    initialize: function ( target ) {
         this._target = $B( target ).element();
-        this._options = options || {};
 
         if ( this._target === window || this._target === document ) {
             this._winTarget = true;
+        } else if ( !/^textarea$/i.test(this._target.nodeName) ) {
+            //chrome ~55 scrollWidth, scrollHeight 1px issue
+            if ( $B.ua.ANDROID && parseInt($B.ua.CHROME_VERSION) < 56 ) {
+                this._correctSize = 1;
+            }
         }
 
         this._scrollX = -1;
         this._scrollY = -1;
+        this._scrollW = 0;
+        this._scrollH = 0;
         this._setEvents();
         return this;
     },
@@ -79,29 +84,35 @@ ixBand.event.ScrollEnd = $B.Class.extend({
             scrollW = this._getTargetSize( 'width' ),
             scrollH = this._getTargetSize( 'height' );
 
-        if ( this._scrollY != scrollY && scrollH > 0 ) {
-            this._scrollY = scrollY;
+        if ( scrollH > 0 ) {
+            if ( this._scrollY !== scrollY || scrollH !== this._scrollH ) {
+                this._scrollY = scrollY;
+                this._scrollH = scrollH;
 
-            if ( type === 'scrolltop' ) {
-                this._dispatch( type, scrollY, this._gap.top );
-            } else if ( type === 'scrollbottom' ) {
-                this._dispatch( type, scrollY, this._gap.top );
-            } else {
-                this._dispatch( 'scrolltop', scrollY, this._gap.top );
-                this._dispatch( 'scrollbottom', scrollY, scrollH - this._gap.bottom );
+                if ( type === 'scrolltop' ) {
+                    this._dispatch( type, scrollY, this._gap.top );
+                } else if ( type === 'scrollbottom' ) {
+                    this._dispatch( type, scrollY, this._gap.top );
+                } else {
+                    this._dispatch( 'scrolltop', scrollY, this._gap.top );
+                    this._dispatch( 'scrollbottom', scrollY, scrollH - this._gap.bottom );
+                }
             }
         }
 
-        if ( this._scrollX != scrollX && scrollW > 0 ) {
-            this._scrollX = scrollX;
+        if ( scrollW > 0 ) {
+            if ( this._scrollX !== scrollX || scrollW !== this._scrollW ) {
+                this._scrollX = scrollX;
+                this._scrollW = scrollW;
 
-            if ( type === 'scrollleft' ) {
-                this._dispatch( type, scrollX, this._gap.left );
-            } else if ( type === 'scrollright' ) {
-                this._dispatch( type, scrollX, scrollW - this._gap.right );
-            } else {
-                this._dispatch( 'scrollleft', scrollX, this._gap.left );
-                this._dispatch( 'scrollright', scrollX, scrollW - this._gap.right );
+                if ( type === 'scrollleft' ) {
+                    this._dispatch( type, scrollX, this._gap.left );
+                } else if ( type === 'scrollright' ) {
+                    this._dispatch( type, scrollX, scrollW - this._gap.right );
+                } else {
+                    this._dispatch( 'scrollleft', scrollX, this._gap.left );
+                    this._dispatch( 'scrollright', scrollX, scrollW - this._gap.right );
+                }
             }
         }
 
@@ -109,20 +120,18 @@ ixBand.event.ScrollEnd = $B.Class.extend({
     },
 
     /**
-     * 내부의 컨텐츠가 스크롤이 발생하지 않을만큼 짧은 컨텐츠인지 여부 반환
+     * 내부의 컨텐츠가 스크롤이 발생할 수 있는 만큼 긴 컨텐츠인지 여부 반환
      * scrollleft, scrollright는 가로사이즈, scrolltop, scrollbottom은 세로사이즈를 체크하여 반환
      * @param {String}  type    체크할 event type
      * @returns {Boolean}
      */
-    isLessContent: function ( type ) {
-        var scrollW = this._getTargetSize( 'width' ),
-            scrollH = this._getTargetSize( 'height' ),
-            result = false;
+    isScrollContent: function ( type ) {
+        var result = false;
 
         if ( type === 'scrollleft' || type === 'scrollright' ) {
-            result = !( scrollW > 0 );
+            result = this._getTargetSize( 'width' ) > 0;
         } else if ( type === 'scrolltop' || type === 'scrollbottom' ) {
-            result = !( scrollH > 0 );
+            result = this._getTargetSize( 'height' ) > 0;
         }
 
         return result;
@@ -152,6 +161,7 @@ ixBand.event.ScrollEnd = $B.Class.extend({
             result = $B.measure['document' + prop]() - $B.measure['window' + prop]();
         } else {
             result = this._target['scroll' + prop] - this._target['client' + prop];
+            result = result - this._correctSize;
         }
 
         return result;
