@@ -1,11 +1,10 @@
 /**
  * ixBand - Javascript Library
- * @package	{ixBand}
- * @version v1.0.0 - 170313 (blaxk)
+ * @version v1.0.0 (1703140828)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
-    "use strict";
+    'use strict';
 
     var MSG_NOT_STRING = '의 대상이 문자열이 아닙니다.',
         MSG_NOT_ARRAY = '의 대상이 배열이 아닙니다.',

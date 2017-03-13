@@ -2,7 +2,7 @@ module.exports = function ( grunt ) {
     'use strict';
 
     var pkg = grunt.file.readJSON( 'package.json' ),
-        comment = '/**\n * <%= pkg.name %> - Javascript Library\n * @package	{<%= pkg.name %>}\n * @version v<%= pkg.buildVersion %> - <%= grunt.template.today("yymmdd") %> (blaxk)\n * The MIT License (MIT), http://ixband.com\n */\n';
+        comment = '/**\n * <%= pkg.name %> - Javascript Library\n * @version v<%= pkg.buildVersion %> (<%= grunt.template.today("yymmddHHMM") %>)\n * The MIT License (MIT), http://ixband.com\n */\n';
 
     // Project configuration.
     grunt.initConfig({
@@ -11,7 +11,7 @@ module.exports = function ( grunt ) {
             options: {
                 separator: '\n\n\n',
                 stripBanners: true,
-                banner: comment + ';(function () {\n    "use strict";\n\n',
+                banner: comment + ";(function () {\n    'use strict';\n\n",
                 process: function( src, filepath ) {
                     var result = src.replace( /\$B.VERSION = '';/, "$B.VERSION = '" + pkg.buildVersion + "';" );
                     return result.replace( /^/gm, '    ' );
