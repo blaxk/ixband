@@ -1,7 +1,7 @@
 /**
  * ixBand - Javascript Library
  * @package	{ixBand}
- * @version v1.0.0 - 170306 (blaxk)
+ * @version v1.0.0 - 170313 (blaxk)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -1023,9 +1023,9 @@
          */
         innerWidth: function () {
             var el = this.element();
-            if ( el === document || el === window ) return 0;
-    
-            if ( this.element() === screen ) {
+            if ( el === document || el === window ) {
+                return $B.measure.windowWidth();
+            } else if ( el === screen ) {
                 return screen.availWidth;
             } else {
                 var pl, pr, value = this.width();
@@ -1043,9 +1043,9 @@
          */
         innerHeight: function () {
             var el = this.element();
-            if ( el === document || el === window ) return 0;
-    
-            if ( el === screen ) {
+            if ( el === document || el === window ) {
+                return $B.measure.windowHeight();
+            } else if ( el === screen ) {
                 return screen.availHeight;
             } else {
                 var pt, pb, value = this.height();
@@ -1066,17 +1066,27 @@
             var el = this.element(),
                 margin = 0;
     
-            if ( el === document || el === window || el === screen ) return 0;
+            if ( el === window ) {
+                if ( window.outerWidth ) {
+                    return window.outerWidth;
+                } else {
+                    return $B.measure.windowWidth();
+                }
+            } else if ( el === document ) {
+                return $B.measure.documentWidth();
+            } else if ( el === screen ) {
+                return screen.width;
+            } else {
+                if ( includeMargin === true ) {
+                    var marginL = parseFloat( $B(el).css('margin-left') ),
+                        marginR = parseFloat( $B(el).css('margin-right') );
     
-            if ( includeMargin === true ) {
-                var marginL = parseFloat( $B(el).css('margin-left') ),
-                    marginR = parseFloat( $B( el ).css('margin-right') );
+                    if ( marginL ) margin += marginL;
+                    if ( marginR ) margin += marginR;
+                }
     
-                if ( marginL ) margin += marginL;
-                if ( marginR ) margin += marginR;
+                return el.offsetWidth + margin;
             }
-    
-            return el.offsetWidth + margin;
         },
         /**
          * <b>읽기전용</b>
@@ -1089,17 +1099,27 @@
             var el = this.element(),
                 margin = 0;
     
-            if ( el === document || el === window || el === screen ) return 0;
+            if ( el === window ) {
+                if ( window.outerHeight ) {
+                    return window.outerHeight;
+                } else {
+                    return $B.measure.windowHeight();
+                }
+            } else if ( el === document ) {
+                return $B.measure.documentHeight();
+            } else if ( el === screen ) {
+                return screen.height;
+            } else {
+                if ( includeMargin === true ) {
+                    var marginT = parseFloat( $B( el ).css( 'margin-top' ) ),
+                        marginB = parseFloat( $B( el ).css( 'margin-bottom' ) );
     
-            if ( includeMargin === true ) {
-                var marginT = parseFloat( $B(el).css('margin-top') ),
-                    marginB = parseFloat( $B( el ).css('margin-bottom') );
+                    if ( marginT ) margin += marginT;
+                    if ( marginB ) margin += marginB;
+                }
     
-                if ( marginT ) margin += marginT;
-                if ( marginB ) margin += marginB;
+                return el.offsetHeight + margin;
             }
-    
-            return el.offsetHeight + margin;
         },
         /**
          * <b>읽기전용</b><br>
@@ -1811,7 +1831,7 @@
     
     /**
      * CustomEvents 객체
-     * 기본 Event Property : e.type, e.data
+     * 기본 Event Property : e.type
      * @param   {Boolean}   dataCheck (default:false)
      * @return	{Function}
      */
@@ -1934,6 +1954,7 @@
                             if ( key !== 'type' ) evt[key] = datas[key];
                         }
                     }
+                    //addListener 에서 등록한 data는 callback 되지 않는다.
                     events[i].handler.call( _this, evt );
                 }
             }
@@ -2093,7 +2114,8 @@
             SAMSUNG_VERSION: 0,
             VERSION: 0,//브리우저 버전 (IE의 경우 8~는 DOC_MODE를 참조한다.)
             OS_VERSION: 0,
-            WEBKIT_VERSION: 0
+            WEBKIT_VERSION: 0,
+            CHROME_VERSION: 0 //크롬엔진 버전
         };
     
         ua.CHROME = ua.CHROME && !ua.SAFARI && !ua.OPERA && !ua.EDGE;
@@ -2170,6 +2192,8 @@
     
         if ( ua.SAMSUNG_VERSION ) ua.SAMSUNG_VERSION += '';
         if ( ua.VERSION ) ua.VERSION += '';
+    
+        ua.CHROME_VERSION = getVersion( 'chrome' );
     
         // 버전이 없으면 '0'을 반환
         function getVersion ( browserName ) {
@@ -3599,14 +3623,24 @@
          * @return	{Number}
          */
         windowWidth: function () {
-            return document.documentElement.clientWidth;
+            if ( window.innerWidth ) {
+                this.windowWidth = function () { return window.innerWidth; };
+            } else {
+                this.windowWidth = function () { return document.documentElement.clientWidth; };
+            }
+            return this.windowWidth();
         },
         /**
          * Viewport 세로사이즈 반환 (메뉴바, 툴바, 스크롤바를 제외)
          * @return	{Number}
          */
         windowHeight: function () {
-            return document.documentElement.clientHeight;
+            if ( window.innerHeight ) {
+                this.windowHeight = function () { return window.innerHeight; };
+            } else {
+                this.windowHeight = function () { return document.documentElement.clientHeight; };
+            }
+            return this.windowHeight();
         },
         /**
          * Windows 바탕화면에서 브라우져 X좌표
@@ -4548,7 +4582,6 @@
          * @param   {Number} baseValue   기준이 되는 수치 갱신
          */
         trigger: function ( baseValue ) {
-            //TODO: baseValue, positions 가 변했을때만 실행
             if ( !$B.isEmpty(baseValue) ) {
                 this._calculate( baseValue );
             }
@@ -6662,28 +6695,33 @@
     
     /**
      * 대상영역의 ScrollEnd 이벤트
-     * Event : scrolltop, scrollrignt, scrollbottom, scrollleft, scroll
+     * Event : scrolltop, scrollrignt, scrollbottom, scrollleft
      * Event Property : type, target, currentTarget
      * @constructor
      * @param	{Element, Selector, jQuery}	target		터치이벤트 발생시킬 대상, 내장함수 querySelector() 로 구현되어졌다, 단일개체. http://www.w3.org/TR/css3-selectors/#link
-     * @param   {Object}    options
-     *      - {Boolean}     noneScrollDispatchEvent     콘텐츠가 부모영역보다 짧아 스크롤이 발생되지 않는시점에 이벤트를 받을지 여부 설정
      */
     ixBand.event.ScrollEnd = $B.Class.extend({
         _enable: false,
+        _correctSize: 0,
         _gap: {left: 0, right: 0, top: 0, bottom: 0},
         _active: {scrollleft: false, scrollright: false, scrolltop: false, scrollbottom: false},
     
-        initialize: function ( target, options ) {
+        initialize: function ( target ) {
             this._target = $B( target ).element();
-            this._options = options || {};
     
             if ( this._target === window || this._target === document ) {
                 this._winTarget = true;
+            } else if ( !/^textarea$/i.test(this._target.nodeName) ) {
+                //chrome ~55 scrollWidth, scrollHeight 1px issue
+                if ( $B.ua.ANDROID && parseInt($B.ua.CHROME_VERSION) < 56 ) {
+                    this._correctSize = 1;
+                }
             }
     
             this._scrollX = -1;
             this._scrollY = -1;
+            this._scrollW = 0;
+            this._scrollH = 0;
             this._setEvents();
             return this;
         },
@@ -6737,29 +6775,35 @@
                 scrollW = this._getTargetSize( 'width' ),
                 scrollH = this._getTargetSize( 'height' );
     
-            if ( this._scrollY != scrollY && scrollH > 0 ) {
-                this._scrollY = scrollY;
+            if ( scrollH > 0 ) {
+                if ( this._scrollY !== scrollY || scrollH !== this._scrollH ) {
+                    this._scrollY = scrollY;
+                    this._scrollH = scrollH;
     
-                if ( type === 'scrolltop' ) {
-                    this._dispatch( type, scrollY, this._gap.top );
-                } else if ( type === 'scrollbottom' ) {
-                    this._dispatch( type, scrollY, this._gap.top );
-                } else {
-                    this._dispatch( 'scrolltop', scrollY, this._gap.top );
-                    this._dispatch( 'scrollbottom', scrollY, scrollH - this._gap.bottom );
+                    if ( type === 'scrolltop' ) {
+                        this._dispatch( type, scrollY, this._gap.top );
+                    } else if ( type === 'scrollbottom' ) {
+                        this._dispatch( type, scrollY, this._gap.top );
+                    } else {
+                        this._dispatch( 'scrolltop', scrollY, this._gap.top );
+                        this._dispatch( 'scrollbottom', scrollY, scrollH - this._gap.bottom );
+                    }
                 }
             }
     
-            if ( this._scrollX != scrollX && scrollW > 0 ) {
-                this._scrollX = scrollX;
+            if ( scrollW > 0 ) {
+                if ( this._scrollX !== scrollX || scrollW !== this._scrollW ) {
+                    this._scrollX = scrollX;
+                    this._scrollW = scrollW;
     
-                if ( type === 'scrollleft' ) {
-                    this._dispatch( type, scrollX, this._gap.left );
-                } else if ( type === 'scrollright' ) {
-                    this._dispatch( type, scrollX, scrollW - this._gap.right );
-                } else {
-                    this._dispatch( 'scrollleft', scrollX, this._gap.left );
-                    this._dispatch( 'scrollright', scrollX, scrollW - this._gap.right );
+                    if ( type === 'scrollleft' ) {
+                        this._dispatch( type, scrollX, this._gap.left );
+                    } else if ( type === 'scrollright' ) {
+                        this._dispatch( type, scrollX, scrollW - this._gap.right );
+                    } else {
+                        this._dispatch( 'scrollleft', scrollX, this._gap.left );
+                        this._dispatch( 'scrollright', scrollX, scrollW - this._gap.right );
+                    }
                 }
             }
     
@@ -6767,20 +6811,18 @@
         },
     
         /**
-         * 내부의 컨텐츠가 스크롤이 발생하지 않을만큼 짧은 컨텐츠인지 여부 반환
+         * 내부의 컨텐츠가 스크롤이 발생할 수 있는 만큼 긴 컨텐츠인지 여부 반환
          * scrollleft, scrollright는 가로사이즈, scrolltop, scrollbottom은 세로사이즈를 체크하여 반환
          * @param {String}  type    체크할 event type
          * @returns {Boolean}
          */
-        isLessContent: function ( type ) {
-            var scrollW = this._getTargetSize( 'width' ),
-                scrollH = this._getTargetSize( 'height' ),
-                result = false;
+        isScrollContent: function ( type ) {
+            var result = false;
     
             if ( type === 'scrollleft' || type === 'scrollright' ) {
-                result = !( scrollW > 0 );
+                result = this._getTargetSize( 'width' ) > 0;
             } else if ( type === 'scrolltop' || type === 'scrollbottom' ) {
-                result = !( scrollH > 0 );
+                result = this._getTargetSize( 'height' ) > 0;
             }
     
             return result;
@@ -6810,6 +6852,7 @@
                 result = $B.measure['document' + prop]() - $B.measure['window' + prop]();
             } else {
                 result = this._target['scroll' + prop] - this._target['client' + prop];
+                result = result - this._correctSize;
             }
     
             return result;
@@ -7481,117 +7524,77 @@
     /**
      * HttpRequest (xml, text기반 통신), 로컬서버에서는 비정상작동 할수 있다.<br>
      * 같은 도메인의 데이타 파일만 가져올수 있다.<br>
-     * JS파일 로드에서 사용된다.(new_script.text = e.text)<br>
+     * JS파일 로드에서 사용된다.(new_script.text = e.text)
+     * Evetn : complete, error, progress(IE10~지원, Android2.*~지원)
      * Event Property : type, target, xml, text, status(상태 코드수치), statusText(에러메세지를 받을때 활용), data
      * @class	{HttpRequest}
      * @constructor
      * @param	{String}	path	경로 : String
-     * @param	{Object}	dispatch	Event들 onComplete:Function, onError:Function, onProgress:Function(IE10~지원, Android2.*~지원)
      * @param	{Object}	data	이벤트핸들러 에서 전달, 'e.data'
      * @param	{String}	method	'GET' or 'POST', 기본값 'GET'<br>POST요청은 URL매개변수의 길이가 2,048글자를 넘을때만 사용, IE에서 URL길이 2,048자이상은 잘라버리기때문.
      * @param	{String}	charset	기본값 'UTF-8'(method가 POST 일때만 적용)
      */
-    ixBand.net.HttpRequest = function ( path, dispatch, data, method, charset ) {
-        this._path = path;
-        this.xhr = null;
-        this._handler = null;
-        this._onComplete = null;
-        this._onError = null;
-        this._method = method || 'GET';
-        this._charset = charset || 'UTF-8';
+    ixBand.net.HttpRequest = $B.Class.extend({
+        initialize: function ( path, data, method, charset ) {
+            this._path = path;
+            this._data = data;
+            this.xhr = null;
+            this._method = method || 'GET';
+            this._charset = charset || 'UTF-8';
     
-        this._removeEvents = function () {
-            if (this.xhr) this.xhr.onreadystatechange = null;
-        };
+            this._setEvents();
+        },
+        // ===============	Public Methods =============== //
     
-        //"Microsoft.XMLHTTP", "MSXML2.XMLHTTP.3.0"는 readyState 3를 지원하지 않는다.
-        var i, activeXids = ['MSXML2.XMLHTTP.6.0', 'MSXML3.XMLHTTP', 'Microsoft.XMLHTTP', 'MSXML2.XMLHTTP.3.0'],
-            activeXidNum = activeXids.length,
-            _this = this;
-    
-        if (window.XMLHttpRequest) {
-            this.xhr = new XMLHttpRequest();
-        } else {
-            for ( i = 0; i < activeXidNum; ++i ) {
-                try {
-                    this.xhr = new ActiveXObject(activeXids[i]);
-                    break;
-                } catch (e) {}
-            }
-        }
-    
-        if (dispatch) {
-            this._onComplete = (typeof dispatch.onComplete === 'function')? dispatch.onComplete : null;
-            this._onError = (typeof dispatch.onError === 'function')? dispatch.onError : null;
-    
-            this._handler = function (e) {
-                //DONE
-                if (_this.xhr.readyState !== 4) return false;
-                var evt = {type: '', target: _this, xml: _this.xhr.responseXML, text: _this.xhr.responseText, status: _this.xhr.status, statusText: _this.xhr.statusText, data: ''};
-                if (data || data == 0) evt.data = data;
-    
-                if (_this.xhr.status == 200) {
-                    evt.type = 'complete';
-                    if ( _this._onComplete ) _this._onComplete.call( _this, evt );
-                } else {
-                    evt.type = 'error';
-                    if ( _this._onError ) _this._onError.call( _this, evt );
-                }
-                _this._removeEvents();
-            };
-        }
-    };
-    
-    ixBand.net.HttpRequest.prototype = {
         /** HttpRequest 정지, 이벤트삭제 */
-        unload: function () {
+        abort: function () {
             this._removeEvents();
             this.xhr.abort();
             return this;
         },
         /**
          * HttpRequest connect<br>
-         * 다시 호출할려면 unload시킨후 호출해야한다.
+         * 다시 호출할려면 abort시킨후 호출해야한다.
          * @param	{String}	params	예)count=100&time=100
          * @param	{Boolean}	cache	GET으로 요청할때 캐시가 false면 url에 requestTime을 추가하여 캐시를 방지한다.
          */
         load: function ( params, cache ) {
-            var sp = (this._path.indexOf('?') < 0)? '?' : '&',
+            var sp = ( this._path.indexOf('?') < 0 )? '?' : '&',
                 url = ( cache )? this._path : this._path + sp + 'requestTime=' + new Date().getTime();
     
             //URI encode
-            if(params){
-                var datas = params.split('&'),
+            if ( params ) {
+                var datas = params.split( '&' ),
                     paramNum = datas.length,
                     dataSet, i;
     
                 params = '';
                 for ( i = 0; i < paramNum; ++i ) {
-                    dataSet = datas[i].split('=');
-                    params += dataSet[0] + '=' + encodeURIComponent(dataSet[1]);
-                    if (i < paramNum - 1) params += '&';
+                    dataSet = datas[i].split( '=' );
+                    params += dataSet[0] + '=' + encodeURIComponent( dataSet[1] );
+                    if ( i < paramNum - 1 ) params += '&';
                 }
             }
     
             this.xhr.onreadystatechange = this._handler;
     
             //GET
-            if (this._method.toUpperCase() == 'GET') {
-                if (params && params != '') url += '&' + params;
-                this.xhr.open('GET', url, true);
-                this.xhr.send(null);
+            if ( /get/i.test(this._method) ) {
+                if ( params && params != '' ) url += '&' + params;
+                this.xhr.open( 'GET', url, true );
+                this.xhr.send( null );
                 //POST
             } else {
-                this.xhr.open('POST', url, true);
-                this.xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded; charset=' + this._charset);
-                this.xhr.send(params);
+                this.xhr.open( 'POST', url, true );
+                this.xhr.setRequestHeader( 'Content-type', 'application/x-www-form-urlencoded; charset=' + this._charset );
+                this.xhr.send( params );
             }
             return this;
         },
     
         /**
          * 서버에 Stream으로 파일전송<br>
-         * 다시 호출할려면 unload시킨후 호출해야한다.
+         * 다시 호출할려면 abort시킨후 호출해야한다.
          * method설정과 괸계없이 무조건 POST전송
          * @param	{String}	data	base64 image data
          */
@@ -7603,149 +7606,189 @@
             this.xhr.send( data );
     
             return this;
+        },
+    
+        // ===============	Private Methods =============== //
+    
+        _setEvents: function () {
+            this._handler = $B.bind(function (e) {
+                //DONE
+                if ( this.xhr.readyState !== 4 ) return false;
+                var evt = {target: this, xml: this.xhr.responseXML, text: this.xhr.responseText, status: this.xhr.status, statusText: this.xhr.statusText, data: this._data};
+    
+                if ( this.xhr.status == 200 ) {
+                    this.dispatch( 'complete', evt );
+                } else {
+                    this.dispatch( 'error', evt );
+                }
+    
+                this._removeEvents();
+            }, this);
+    
+            //"Microsoft.XMLHTTP", "MSXML2.XMLHTTP.3.0"는 readyState 3를 지원하지 않는다.
+            var i, activeXids = ['MSXML2.XMLHTTP.6.0', 'MSXML3.XMLHTTP', 'Microsoft.XMLHTTP', 'MSXML2.XMLHTTP.3.0'],
+                activeXidNum = activeXids.length;
+    
+            if ( window.XMLHttpRequest ) {
+                this.xhr = new XMLHttpRequest();
+            } else {
+                for ( i = 0; i < activeXidNum; ++i ) {
+                    try {
+                        this.xhr = new ActiveXObject( activeXids[i] );
+                        break;
+                    } catch (e) {}
+                }
+            }
+        },
+    
+        _removeEvents: function () {
+            if ( this.xhr ) this.xhr.onreadystatechange = null;
         }
-    };
+    }, '$B.net.HttpRequest');
 
 
     // ============================================================== //
     // =====================	ImageLoader	========================= //
     // ============================================================== //
     /**
-     * 이미지 로더<br>
+     * 이미지 로더
      * target을 지정하지 않았을때는 el.appendChild(e.img) 이런식으로 화면에 붙인다.<br>
      * img src를 넣을경우 특정 브라우져에서 정상로드시에도 error를 반환할때가 있다.<br>
      * 로컬에서 테스트시 ie6,7에서 complete 이벤트가 무한발생한다.
-     * Event Property : type, target, img, data
-     * @class	{ImageLoader}
+     * Event : complete, error
+     * Event Property : type, img, data
      * @constructor
-     * @param	{HTMLImageElement}	target	img 타겟, 지정하지 않을때는 null을 설정한다.
      * @param	{String}	path	이미지경로
-     * @param	{Object}	dispatch	Event들 onComplete:Function, onError:Function
+     * @param	{HTMLImageElement}	target	img 타겟, 지정하지 않을때는 null을 설정한다.
      * @param	{Object}	data	이벤트핸들러 에서 전달, 'e.data'
      */
-    ixBand.net.ImageLoader = function ( target, path, dispatch, data ) {
-        data = ( data || data == 0 )? data : null;
+    ixBand.net.ImageLoader = $B.Class.extend({
+        initialize: function ( path, target, data ) {
+            this._path = path;
+            this._data = data;
+            this.img = target || new Image();
+            this._isComplete = false;
     
-        var _this = this;
+            this._setEvents();
+        },
     
-        this._path = path;
-        this.img = target || new Image();
-        this._handler = null;
-        this._onComplete = null;
-        this._onError = null;
-        this._isComplete = false;
-    
-        this._removeEvents = function () {
-            $B(this.img).removeEvent('load', this._handler);
-            $B(this.img).removeEvent('error', this._handler);
-        };
-    
-        if (dispatch) {
-            this._onComplete = (typeof dispatch.onComplete === 'function')? dispatch.onComplete : {};
-            this._onError = (typeof dispatch.onError === 'function')? dispatch.onError : {};
-    
-            this._handler = function (e) {
-                var evt = { target: _this, img: _this.img, data: data };
-    
-                switch (e.type) {
-                    case 'load':
-                        evt.type = 'complete';
-                        _this._isComplete = true;
-                        _this._onComplete.call(_this, evt);
-                        break;
-                    case 'error':
-                        evt.type = 'error';
-                        _this._onError.call(_this, evt);
-                        break;
-                }
-                _this._removeEvents();
-            };
-        }
-    };
-    
-    ixBand.net.ImageLoader.prototype = {
+        // ===============	Public Methods =============== //
         /** Load 취소 */
         unload: function () {
-            if (this._isComplete) return;
+            if ( this._isComplete ) return;
             this._removeEvents();
             this.img.src = null;
             return this;
         },
+    
         /** Load 시작, 다시 호출할려면 unload시킨후 호출. */
         load: function () {
-            if (this._isComplete) return;
-            if (typeof this._onComplete === 'function') $B(this.img).addEvent('load', this._handler);
-            if (typeof this._onError === 'function') $B(this.img).addEvent('error', this._handler);
+            if ( this._isComplete ) return;
+            $B( this.img ).addEvent( 'load', this._handler );
+            $B( this.img ).addEvent( 'error', this._handler );
             this.img.src = this._path;
             return this;
+        },
+    
+        // ===============	Private Methods =============== //
+    
+        _setEvents: function () {
+            this._handler = $B.bind( function (e) {
+                var evt = {target: this, img: this.img, data: this._data};
+    
+                switch (e.type) {
+                    case 'load':
+                        evt.type = 'complete';
+                        this._isComplete = true;
+                        this.dispatch( 'complete', evt );
+                        break;
+                    case 'error':
+                        this.dispatch( 'error', evt );
+                        break;
+                }
+    
+                this._removeEvents();
+            }, this);
+        },
+    
+        _removeEvents: function () {
+            $B( this.img ).removeEvent( 'load', this._handler );
+            $B( this.img ).removeEvent( 'error', this._handler );
         }
-    };
+    }, '$B.net.ImageLoader');
 
 
     // ============================================================== //
     // =====================	JSLoader	========================= //
     // ============================================================== //
     /**
-     * JS파일 로더, 로컬서버에서는 비정상작동 할수 있다.<br>
-     * Event Property : type, target, script, data
+     * JS파일 로더, 로컬서버에서는 비정상작동 할수 있다.
+     * Event : complete, error 이벤트를 지원하지 않는다.
+     * Event Property : type, script, data
      * @class	{JSLoader}
      * @constructor
      * @param	{String}	path	경로 : String
-     * @param	{Object}	dispatch	Event들 onComplete:Function, 에러이벤트가 발생하지 않는다.
      * @param	{Object}	data	이벤트핸들러 에서 전달, 'e.data'
      */
-    ixBand.net.JSLoader = function ( path, dispatch, data ) {
-        data = ( data || data == 0 )? data : null;
+    ixBand.net.JSLoader = $B.Class.extend({
+        initialize: function ( path, data ) {
+            this._path = path;
+            this._isComplete = false;
+            this._data = data;
+            this.script = document.createElement( 'script' );
+            this.script.type = 'text/javascript';
     
-        this._path = path;
-        this._isComplete = false;
-        this._onComplete = ( dispatch && dispatch.onComplete )? dispatch.onComplete : {};
-        this.script = document.createElement( 'script' );
-        this.script.type = 'text/javascript';
+            this._setEvents();
+        },
     
-        this._evt = {type: 'complete', target: this, script: this.script, data: data};
-    
-        //IE
-        if ( this.script.readyState ) {
-            this._removeEvents = function () {
-                this.script.onreadystatechange = null;
-            };
-        } else {
-            this._removeEvents = function () {
-                this.script.onload = null;
-            };
-        }
-    };
-    
-    ixBand.net.JSLoader.prototype = {
+        // ===============	Public Methods =============== //
         /** Load 취소, Load가 완료된 후에는 unload되지 않는다. */
         unload: function () {
             if ( this._isComplete ) return;
             this._removeEvents();
             this.script.src = null;
         },
+    
         /** Load 시작, 로드가 진행중이면 unload시킨후 로드해야 한다. 로드완료후 호출 불가능. */
         load: function () {
             if ( this._isComplete ) return;
-            var _this = this;
+    
             //IE
             if ( this.script.readyState ) {
-                this.script.onreadystatechange = function (e) {
-                    if ( _this.script.readyState == 'loaded' || _this.script.readyState == 'complete' ) {
-                        _this._removeEvents();
-                        _this._onComplete.call( _this, _this._evt );
-                        _this._isComplete = true;
+                this.script.onreadystatechange = $B.bind( function (e) {
+                    if ( this.script.readyState === 'loaded' || this.script.readyState === 'complete' ) {
+                        this._removeEvents();
+                        this._isComplete = true;
+                        this.dispatch( 'load', {target: this, script: this.script, data: this._data} );
                     }
-                };
+                }, this);
             } else {
-                this.script.onload = function (e) {
-                    _this._removeEvents();
-                    _this._onComplete.call( _this, _this._evt );
-                    _this._isComplete = true;
-                };
+                this.script.onload = $B.bind( function (e) {
+                    this._removeEvents();
+                    this._isComplete = true;
+                    this.dispatch( 'load', {target: this, script: this.script, data: this._data} );
+                }, this);
             }
+    
             this.script.src = this._path;
             document.getElementsByTagName( 'head' )[0].appendChild( this.script );
+        },
+    
+        //로드여부 반환
+        complete: function () {
+            return this._isComplete;
+        },
+    
+        // ===============	Private Methods =============== //
+    
+        _removeEvents: function () {
+            //IE
+            if ( this.script.readyState ) {
+                this.script.onreadystatechange = null;
+            } else {
+                this.script.onload = null;
+            }
         }
-    };
+    
+    }, '$B.net.JSLoader');
 })();

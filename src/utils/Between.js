@@ -38,7 +38,6 @@ ixBand.utils.Between = $B.Class.extend({
      * @param   {Number} baseValue   기준이 되는 수치 갱신
      */
     trigger: function ( baseValue ) {
-        //TODO: baseValue, positions 가 변했을때만 실행
         if ( !$B.isEmpty(baseValue) ) {
             this._calculate( baseValue );
         }

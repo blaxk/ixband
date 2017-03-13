@@ -4,7 +4,7 @@
 
 /**
  * CustomEvents 객체
- * 기본 Event Property : e.type, e.data
+ * 기본 Event Property : e.type
  * @param   {Boolean}   dataCheck (default:false)
  * @return	{Function}
  */
@@ -127,6 +127,7 @@ CustomEvents.prototype = {
                         if ( key !== 'type' ) evt[key] = datas[key];
                     }
                 }
+                //addListener 에서 등록한 data는 callback 되지 않는다.
                 events[i].handler.call( _this, evt );
             }
         }
