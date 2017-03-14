@@ -29,7 +29,7 @@ ixBand.Class.prototype = (function () {
  * @returns {Function}
  */
 ixBand.Class.extend = function ( methods, className ) {
-    var EXCEPTION_REG = new RegExp( '^(__parentClass__|__className__|__extends__)$' );
+    var EXCEPTION_REG = new RegExp( '^(__parentClass__|__className__|__extends__|__overwride__)$' );
 
     var _parent = this,
         _className = ( typeof className === 'string' )? className : '$B.Class_' + __classCount++,
