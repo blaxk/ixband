@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.0.0 (1703141919)
+ * @version v1.0.0 (1703141937)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -1842,17 +1842,17 @@
     
     CustomEvents.prototype = {
         /**
-         * @param {String}    type      event type
-         * @param {Function}  listener
-         * @param {*}         data
+         * @param {String}          type      event type
+         * @param {Function}        listener
+         * @param {Object|Boolean}  options   useCapture, passive 등의 설정 용도
          */
-        addListener: function ( type, listener, data ) {
-            if ( ($B.isString(type) && type) && $B.isFunction(listener) && !this.hasListener(type, listener, data) ) {
+        addListener: function ( type, listener, options ) {
+            if ( ($B.isString(type) && type) && $B.isFunction(listener) && !this.hasListener(type, listener, options) ) {
                 var events = this.__eventPool__[type];
                 if ( !events ) events = this.__eventPool__[type] = [];
                 events.push({
                     listener: listener,
-                    data: data
+                    options: options
                 });
             }
     
@@ -1860,21 +1860,21 @@
         },
     
         /**
-         * @param {String}    type      event type
-         * @param {Function}  listener
-         * @param {*}         data
+         * @param {String}          type      event type
+         * @param {Function}        listener
+         * @param {Object|Boolean}  options   useCapture, passive 등
          */
-        removeListener: function ( type, listener, data ) {
+        removeListener: function ( type, listener, options ) {
             var events = this.__eventPool__[type];
     
             if ( events ) {
                 if ( $B.isFunction(listener) ) {
                     var evtLength = events.length, i;
     
-                    if ( !$B.isEmpty(data) && this.__eventOptionCheck__ ) {
+                    if ( !$B.isEmpty(options) && this.__eventOptionCheck__ ) {
                         for ( i = 0; i < evtLength; ++i ) {
                             var eData = events[i];
-                            if ( listener === eData.listener && $B.isEqual(eData.data, data) ) {
+                            if ( listener === eData.listener && $B.isEqual(eData.options, options) ) {
                                 events.splice( $B.array.indexOf(events, events[i]), 1 );
                                 break;
                             }
@@ -1898,12 +1898,12 @@
         },
     
         /**
-         * @param   {String}    type      event type
-         * @param   {Function}  listener
-         * @param   {*}         data
+         * @param   {String}            type      event type
+         * @param   {Function}          listener
+         * @param   {Object|Boolean}    options   useCapture, passive 등
          * @return  {Boolean}
          */
-        hasListener: function ( type, listener, data ) {
+        hasListener: function ( type, listener, options ) {
             var result = false,
                 events = this.__eventPool__[type];
     
@@ -1911,10 +1911,10 @@
                 if ( $B.isFunction(listener) ) {
                     var evtLength = events.length, i;
     
-                    if ( !$B.isEmpty(data) && this.__eventOptionCheck__ ) {
+                    if ( !$B.isEmpty(options) && this.__eventOptionCheck__ ) {
                         for ( i = 0; i < evtLength; ++i ) {
                             var eData = events[i];
-                            if ( listener === eData.listener && $B.isEqual(eData.data, data) ) {
+                            if ( listener === eData.listener && $B.isEqual(eData.options, options) ) {
                                 result = true;
                                 break;
                             }
@@ -1953,7 +1953,7 @@
                             if ( key !== 'type' ) evt[key] = datas[key];
                         }
                     }
-                    //addListener 에서 등록한 data는 callback 되지 않는다.
+    
                     events[i].listener.call( _this, evt );
                 }
             }
