@@ -23,16 +23,16 @@ ixBand.event.TouchEvent = $B.Class.extend({
     /**
      * 이벤트 등록
      * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
-     * @param	{Function}	handler		event handler
+     * @param	{Function}	listener		event listener
      * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 설정, default:false
      * 				https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener 참조
      * @return	{TouchEvent}
      */
-    addListener: function ( type, handler, useCapture ) {
+    addListener: function ( type, listener, useCapture ) {
         if ( this._target && $B.ua.TOUCH_DEVICE && /^touch/i.test(type) ) {
             useCapture = useCapture || false;
 
-            if ( this.hasListener(type, handler, useCapture) ) return this;
+            if ( this.hasListener(type, listener, useCapture) ) return this;
 
             if ( MS_POINTER && !this._isEndEvent ) {
                 document.addEventListener( this._getCrossType('touchend'), this._touchHandler, false );
@@ -40,7 +40,7 @@ ixBand.event.TouchEvent = $B.Class.extend({
                 this._isEndEvent = true;
             }
 
-            //중첩된 함수를 정의하고 이 함수를 handler 함수 대신 등록한다.
+            //중첩된 함수를 정의하고 이 함수를 listener 함수 대신 등록한다.
             var wrapHandler = $B.bind(function (e) {
                 var crossType = this._originToCrossType( e.type );
 
@@ -80,20 +80,20 @@ ixBand.event.TouchEvent = $B.Class.extend({
                 wrapHandler: wrapHandler
             };
 
-            $B.Class.prototype.addListener.call( this, type, handler, evtData );
+            $B.Class.prototype.addListener.call( this, type, listener, evtData );
             this._target.addEventListener( this._getCrossType(type), wrapHandler, evtData.useCapture );
         }
         return this;
     },
 
     /**
-     * 이벤트 삭제, type만 입력하면 해당 타입과 일치하는 이벤트 모두 삭제, type handler모두 설정하지 않으면 대상의 모든 이벤트 삭제
+     * 이벤트 삭제, type만 입력하면 해당 타입과 일치하는 이벤트 모두 삭제, type listener모두 설정하지 않으면 대상의 모든 이벤트 삭제
      * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
-     * @param	{Function}	handler		event handler
+     * @param	{Function}	listener		event listener
      * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 확인 후 삭제, default:false
      * @return	{TouchEvent}
      */
-    removeListener: function ( type, handler, useCapture ) {
+    removeListener: function ( type, listener, useCapture ) {
         var events = this.__eventPool__[type],
             crossType = this._getCrossType( type ),
             evtLength = 0, i;
@@ -101,10 +101,10 @@ ixBand.event.TouchEvent = $B.Class.extend({
         if ( events ) {
             evtLength = events.length;
 
-            if ( $B.isFunction(handler) ) {
+            if ( $B.isFunction(listener) ) {
                 for ( i = 0; i < evtLength; ++i ) {
                     var eData = events[i];
-                    if ( handler === eData.handler && $B.isEqual(eData.data.useCapture, useCapture || false) ) {
+                    if ( listener === eData.listener && $B.isEqual(eData.data.useCapture, useCapture || false) ) {
                         this._target.removeEventListener( crossType, eData.data.wrapHandler, eData.data.useCapture );
                         events.splice( $B.array.indexOf(events, events[i]), 1 );
                     }
@@ -134,29 +134,29 @@ ixBand.event.TouchEvent = $B.Class.extend({
     /**
      * 이벤트 등록여부 반환
      * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
-     * @param	{Function}	handler		event handler
+     * @param	{Function}	listener		event listener
      * @param	{Boolean}	useCapture	useCapture || options	capture, passive 등의 설정 여부 확인, default:false
      * @return	{Boolean}
      */
-    hasListener: function ( type, handler, useCapture ) {
+    hasListener: function ( type, listener, useCapture ) {
         var result = false,
             events = this.__eventPool__[type];
 
         if ( events ) {
-            if ( $B.isFunction(handler) ) {
+            if ( $B.isFunction(listener) ) {
                 var evtLength = events.length, i;
 
                 if ( !$B.isEmpty(useCapture) ) {
                     for ( i = 0; i < evtLength; ++i ) {
                         var eData = events[i];
-                        if ( handler === eData.handler && $B.isEqual(eData.data.useCapture, useCapture || false) ) {
+                        if ( listener === eData.listener && $B.isEqual(eData.data.useCapture, useCapture || false) ) {
                             result = true;
                             break;
                         }
                     }
                 } else {
                     for ( i = 0; i < evtLength; ++i ) {
-                        if ( handler === events[i].handler ) {
+                        if ( listener === events[i].listener ) {
                             result = true;
                             break;
                         }

@@ -5,27 +5,27 @@
 /**
  * CustomEvents 객체
  * 기본 Event Property : e.type
- * @param   {Boolean}   dataCheck (default:false)
+ * @param   {Boolean}   optionCheck (default:false)
  * @return	{Function}
  */
-var CustomEvents = function ( dataCheck ) {
+var CustomEvents = function ( optionCheck ) {
     this.__eventPool__ = {};
     this.__uId__ = $B.string.unique();
-    this.__eventDataCheck__ = dataCheck || false;
+    this.__eventOptionCheck__ = optionCheck || false;
 };
 
 CustomEvents.prototype = {
     /**
      * @param {String}    type      event type
-     * @param {Function}  callback
+     * @param {Function}  listener
      * @param {*}         data
      */
-    addListener: function ( type, callback, data ) {
-        if ( ($B.isString(type) && type) && $B.isFunction(callback) && !this.hasListener(type, callback, data) ) {
+    addListener: function ( type, listener, data ) {
+        if ( ($B.isString(type) && type) && $B.isFunction(listener) && !this.hasListener(type, listener, data) ) {
             var events = this.__eventPool__[type];
             if ( !events ) events = this.__eventPool__[type] = [];
             events.push({
-                handler: callback,
+                listener: listener,
                 data: data
             });
         }
@@ -35,27 +35,27 @@ CustomEvents.prototype = {
 
     /**
      * @param {String}    type      event type
-     * @param {Function}  callback
+     * @param {Function}  listener
      * @param {*}         data
      */
-    removeListener: function ( type, callback, data ) {
+    removeListener: function ( type, listener, data ) {
         var events = this.__eventPool__[type];
 
         if ( events ) {
-            if ( $B.isFunction(callback) ) {
+            if ( $B.isFunction(listener) ) {
                 var evtLength = events.length, i;
 
-                if ( !$B.isEmpty(data) && this.__eventDataCheck__ ) {
+                if ( !$B.isEmpty(data) && this.__eventOptionCheck__ ) {
                     for ( i = 0; i < evtLength; ++i ) {
                         var eData = events[i];
-                        if ( callback === eData.handler && $B.isEqual(eData.data, data) ) {
+                        if ( listener === eData.listener && $B.isEqual(eData.data, data) ) {
                             events.splice( $B.array.indexOf(events, events[i]), 1 );
                             break;
                         }
                     }
                 } else {
                     for ( i = 0; i < evtLength; ++i ) {
-                        if ( callback === events[i].handler ) {
+                        if ( listener === events[i].listener ) {
                             events.splice( $B.array.indexOf(events, events[i]), 1 );
                             break;
                         }
@@ -73,29 +73,29 @@ CustomEvents.prototype = {
 
     /**
      * @param   {String}    type      event type
-     * @param   {Function}  callback
+     * @param   {Function}  listener
      * @param   {*}         data
      * @return  {Boolean}
      */
-    hasListener: function ( type, callback, data ) {
+    hasListener: function ( type, listener, data ) {
         var result = false,
             events = this.__eventPool__[type];
 
         if ( events ) {
-            if ( $B.isFunction(callback) ) {
+            if ( $B.isFunction(listener) ) {
                 var evtLength = events.length, i;
 
-                if ( !$B.isEmpty(data) && this.__eventDataCheck__ ) {
+                if ( !$B.isEmpty(data) && this.__eventOptionCheck__ ) {
                     for ( i = 0; i < evtLength; ++i ) {
                         var eData = events[i];
-                        if ( callback === eData.handler && $B.isEqual(eData.data, data) ) {
+                        if ( listener === eData.listener && $B.isEqual(eData.data, data) ) {
                             result = true;
                             break;
                         }
                     }
                 } else {
                     for ( i = 0; i < evtLength; ++i ) {
-                        if ( callback === events[i].handler ) {
+                        if ( listener === events[i].listener ) {
                             result = true;
                             break;
                         }
@@ -128,7 +128,7 @@ CustomEvents.prototype = {
                     }
                 }
                 //addListener 에서 등록한 data는 callback 되지 않는다.
-                events[i].handler.call( _this, evt );
+                events[i].listener.call( _this, evt );
             }
         }
 
