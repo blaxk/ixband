@@ -62,6 +62,7 @@ ixBand.event.Swipe = $B.Class.extend({
     //horizontal, vertical 감도 별도 설정
     sensitivity: function ( h, v ) {
         var sv = v || h;
+        if ( !sv ) return this;
         this._sensitiveH = h;
         this._sensitiveV = v || h;
         this._swipeWidth = this._swipeSizeCalibration( this.SWIPE_BASE_W, h );
