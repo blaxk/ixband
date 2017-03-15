@@ -21,12 +21,12 @@ module.exports = function ( grunt ) {
             dist: {
                 src: [
                     'src/main.js',
+                    'src/ua/ua.js',
                     'src/common/common.js',
                     'src/dom/dom.js',
                     'src/selector/selector.js',
                     'src/event/CustomEvents.js',
                     'src/common/Class.js',
-                    'src/ua/ua.js',
                     'src/api/api.js',
                     'src/array/array.js',
                     'src/color/color.js',

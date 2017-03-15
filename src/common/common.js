@@ -1,3 +1,39 @@
+var PX_RATIO = window.devicePixelRatio || 1,
+    MS_POINTER = true,
+    TOUCH_ACTION = 'msTouchAction';
+
+//EventType의 크로스부라우징 처리
+var CrossTouchEvent = {};
+
+if ( 'ontouchstart' in window ) {
+    CrossTouchEvent = {touchstart: 'touchstart', touchmove: 'touchmove', touchend: 'touchend', touchcancel: 'touchcancel'};
+    MS_POINTER = false;
+    TOUCH_ACTION = 'touchAction';
+    //IE11~
+} else if ( navigator.pointerEnabled ) {
+    CrossTouchEvent = {touchstart: 'pointerdown', touchmove: 'pointermove', touchend: 'pointerup', touchcancel: 'pointercancel'};
+    TOUCH_ACTION = 'touchAction';
+    //IE10
+} else if ( navigator.msPointerEnabled ) {
+    CrossTouchEvent = {touchstart: 'MSPointerDown', touchmove: 'MSPointerMove', touchend: 'MSPointerUp', touchcancel: 'MSPointerCancel'};
+}
+//e.pointerType = (mouse==4, pen==3, touch==2)
+
+
+var TRANSITION_NAME = 'transition:';
+
+//Android2.* 버젼에서 크로스브라우징을 위해서 -webkit-transition 이외의 transition Style 속성을 같이 작성하면 동작하지 않는다.
+if ( $B.ua.WEBKIT ) {
+    TRANSITION_NAME = '-webkit-transition:';
+} else if ( $B.ua.MSIE ) {
+    if ( $B.ua.DOC_MODE_IE11_LT ) TRANSITION_NAME = '-ms-transition:';
+} else if ( $B.ua.MOZILLA ) {
+    TRANSITION_NAME = '-moz-transition:';
+} else if ( $B.ua.OPERA ) {
+    TRANSITION_NAME = '-o-transition:';
+}
+
+
 // ============================================================== //
 // =====================	trace		========================= //
 // ============================================================== //
