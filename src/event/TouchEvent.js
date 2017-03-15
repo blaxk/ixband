@@ -104,14 +104,14 @@ ixBand.event.TouchEvent = $B.Class.extend({
             if ( $B.isFunction(listener) ) {
                 for ( i = 0; i < evtLength; ++i ) {
                     var eData = events[i];
-                    if ( listener === eData.listener && $B.isEqual(eData.data.useCapture, useCapture || false) ) {
-                        this._target.removeEventListener( crossType, eData.data.wrapHandler, eData.data.useCapture );
+                    if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, useCapture || false) ) {
+                        this._target.removeEventListener( crossType, eData.options.wrapHandler, eData.options.useCapture );
                         events.splice( $B.array.indexOf(events, events[i]), 1 );
                     }
                 }
             } else {
                 for ( i = 0; i < evtLength; ++i ) {
-                    this._target.removeEventListener( crossType, events[i].data.wrapHandler, events[i].data.useCapture );
+                    this._target.removeEventListener( crossType, events[i].options.wrapHandler, events[i].options.useCapture );
                 }
 
                 delete this.__eventPool__[type];
@@ -123,7 +123,7 @@ ixBand.event.TouchEvent = $B.Class.extend({
                 evtLength = events.length;
 
                 for ( i = 0; i < evtLength; ++i ) {
-                    this._target.removeEventListener( crossType, events[i].data.wrapHandler, events[i].data.useCapture );
+                    this._target.removeEventListener( crossType, events[i].options.wrapHandler, events[i].options.useCapture );
                 }
             }
             this.__eventPool__ = {};
@@ -149,7 +149,7 @@ ixBand.event.TouchEvent = $B.Class.extend({
                 if ( !$B.isEmpty(useCapture) ) {
                     for ( i = 0; i < evtLength; ++i ) {
                         var eData = events[i];
-                        if ( listener === eData.listener && $B.isEqual(eData.data.useCapture, useCapture || false) ) {
+                        if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, useCapture || false) ) {
                             result = true;
                             break;
                         }

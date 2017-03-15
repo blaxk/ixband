@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.0.0 (1703151454)
+ * @version v1.0.0 (1703151528)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -5610,14 +5610,14 @@
                 if ( $B.isFunction(listener) ) {
                     for ( i = 0; i < evtLength; ++i ) {
                         var eData = events[i];
-                        if ( listener === eData.listener && $B.isEqual(eData.data.useCapture, useCapture || false) ) {
-                            this._target.removeEventListener( crossType, eData.data.wrapHandler, eData.data.useCapture );
+                        if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, useCapture || false) ) {
+                            this._target.removeEventListener( crossType, eData.options.wrapHandler, eData.options.useCapture );
                             events.splice( $B.array.indexOf(events, events[i]), 1 );
                         }
                     }
                 } else {
                     for ( i = 0; i < evtLength; ++i ) {
-                        this._target.removeEventListener( crossType, events[i].data.wrapHandler, events[i].data.useCapture );
+                        this._target.removeEventListener( crossType, events[i].options.wrapHandler, events[i].options.useCapture );
                     }
     
                     delete this.__eventPool__[type];
@@ -5629,7 +5629,7 @@
                     evtLength = events.length;
     
                     for ( i = 0; i < evtLength; ++i ) {
-                        this._target.removeEventListener( crossType, events[i].data.wrapHandler, events[i].data.useCapture );
+                        this._target.removeEventListener( crossType, events[i].options.wrapHandler, events[i].options.useCapture );
                     }
                 }
                 this.__eventPool__ = {};
@@ -5655,7 +5655,7 @@
                     if ( !$B.isEmpty(useCapture) ) {
                         for ( i = 0; i < evtLength; ++i ) {
                             var eData = events[i];
-                            if ( listener === eData.listener && $B.isEqual(eData.data.useCapture, useCapture || false) ) {
+                            if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, useCapture || false) ) {
                                 result = true;
                                 break;
                             }
