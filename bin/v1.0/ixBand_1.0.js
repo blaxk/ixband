@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.0.0 (1703141937)
+ * @version v1.0.0 (1703151446)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -73,6 +73,20 @@
         CrossTouchEvent = {touchstart: 'MSPointerDown', touchmove: 'MSPointerMove', touchend: 'MSPointerUp', touchcancel: 'MSPointerCancel'};
     }
     //e.pointerType = (mouse==4, pen==3, touch==2)
+    
+    
+    var TRANSITION_NAME = 'transition:';
+    
+    //Android2.* 버젼에서 크로스브라우징을 위해서 -webkit-transition 이외의 transition Style 속성을 같이 작성하면 동작하지 않는다.
+    if ( $B.ua.WEBKIT ) {
+        TRANSITION_NAME = '-webkit-transition:';
+    } else if ( $B.ua.MSIE ) {
+        if ( $B.ua.DOC_MODE_IE11_LT ) TRANSITION_NAME = '-ms-transition:';
+    } else if ( $B.ua.MOZILLA ) {
+        TRANSITION_NAME = '-moz-transition:';
+    } else if ( $B.ua.OPERA ) {
+        TRANSITION_NAME = '-o-transition:';
+    }
 
 
     // ============================================================== //
@@ -1353,6 +1367,35 @@
             } else {
                 return el.innerHTML;
             }
+        },
+    
+        /**
+         * 대상개체의 CSS3 transition을 적용한다.
+         * $B(selector).transition( 'none' ); transition을 중지하고 리셋 되어진다.
+         * $B(selector).transition( 'left:200px', 'none' ); 스타일은 적용이 되고, transition은 중지 된다.
+         * IE와 iOS에서는 해당노드가 화면에서 사라지면(display:none;) transition을 pause시키고 transitionend 이벤트도 보류된다.
+         * @param	{String}	tStyle		taransition style, ex) left:220px
+         * @param	{String}	tValue		taransition value, ex) left 0.6s ease
+         * @param	{Object} 	dispatch	transition 이벤트, ex) {onTransitonEnd: handler}, (Event Properties : type, target, data)
+         * @param	{*} 		data		transitionend 이벤트 핸들러에서 전달받을 data, ex) e.data
+         */
+        transition: function ( tStyle, tValue, dispatch, data ) {
+            var _el = this.element(),
+                _css = TRANSITION_NAME + ( tStyle == 'none'? 'none' : tValue ) + ';',
+                _onTransitionEnd = ( dispatch && dispatch.onTransitionEnd )? dispatch.onTransitionEnd : null;
+    
+            //Transition
+            if ( _onTransitionEnd ) {
+                this.removeEvent( 'transitionend' );
+                this.addEvent( 'transitionend', function (e) {
+                    $B( this ).removeEvent( 'transitionend' );
+    
+                    //이벤트 전달
+                    _onTransitionEnd.call( this, {type: 'transitionend', target: this, data: data} );
+                });
+            }
+    
+            $B.style.inline( _el, tStyle == 'none'? _css : tStyle + '; ' + _css );
         },
     
         // ========================== < Event > ========================== //

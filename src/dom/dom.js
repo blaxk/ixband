@@ -920,6 +920,35 @@ var _dom = {
         }
     },
 
+    /**
+     * 대상개체의 CSS3 transition을 적용한다.
+     * $B(selector).transition( 'none' ); transition을 중지하고 리셋 되어진다.
+     * $B(selector).transition( 'left:200px', 'none' ); 스타일은 적용이 되고, transition은 중지 된다.
+     * IE와 iOS에서는 해당노드가 화면에서 사라지면(display:none;) transition을 pause시키고 transitionend 이벤트도 보류된다.
+     * @param	{String}	tStyle		taransition style, ex) left:220px
+     * @param	{String}	tValue		taransition value, ex) left 0.6s ease
+     * @param	{Object} 	dispatch	transition 이벤트, ex) {onTransitonEnd: handler}, (Event Properties : type, target, data)
+     * @param	{*} 		data		transitionend 이벤트 핸들러에서 전달받을 data, ex) e.data
+     */
+    transition: function ( tStyle, tValue, dispatch, data ) {
+        var _el = this.element(),
+            _css = TRANSITION_NAME + ( tStyle == 'none'? 'none' : tValue ) + ';',
+            _onTransitionEnd = ( dispatch && dispatch.onTransitionEnd )? dispatch.onTransitionEnd : null;
+
+        //Transition
+        if ( _onTransitionEnd ) {
+            this.removeEvent( 'transitionend' );
+            this.addEvent( 'transitionend', function (e) {
+                $B( this ).removeEvent( 'transitionend' );
+
+                //이벤트 전달
+                _onTransitionEnd.call( this, {type: 'transitionend', target: this, data: data} );
+            });
+        }
+
+        $B.style.inline( _el, tStyle == 'none'? _css : tStyle + '; ' + _css );
+    },
+
     // ========================== < Event > ========================== //
     /**
      * 타겟타입:(Element, ID)<br>
