@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.0.1 (1703272047)
+ * @version v1.0.1 (1703280823)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -3727,7 +3727,8 @@
      * @type {ixBand.mobile}
      */
     ixBand.mobile = {
-        TOUCH_ACTION: TOUCH_ACTION
+        TOUCH_ACTION: TOUCH_ACTION,
+        TRANSITION: TRANSITION_NAME
     };
     
 

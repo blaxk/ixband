@@ -9,5 +9,6 @@
  * @type {ixBand.mobile}
  */
 ixBand.mobile = {
-    TOUCH_ACTION: TOUCH_ACTION
+    TOUCH_ACTION: TOUCH_ACTION,
+    TRANSITION: TRANSITION_NAME
 };
