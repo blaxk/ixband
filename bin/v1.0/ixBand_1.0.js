@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.0.0 (1703151543)
+ * @version v1.0.1 (1703272047)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -28,7 +28,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.0.0';
+    $B.VERSION = '1.0.1';
     
     
     //ixBand 이외의 변수를 사용할때
@@ -3001,7 +3001,7 @@
          * Color문자열 ("hex", "rgb", "rgba", "hsl", "hsla", "keyword")을 해당 Type Color문자열로 변환하여 반환.
          * @param	{String}	color		Color문자열
          * @param	{String}	type		변환할 Color Type, "hex", "rgb", "rgba", "hsl", "hsla"
-         * @return	{String}	Color문자열 "hex", "rgb", "rgba"
+         * @return	{String}	Color문자열 "hex", "rgb", "rgba", "hsl", "hsla"
          */
         convert: function ( color, type ) {
             switch ( type ) {
@@ -3028,7 +3028,7 @@
          * @param	{String}	fromColor	"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
          * @param	{String}	toColor		"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
          * @param	{Number}	progress	혼합비율 지점을 설정 0~1
-         * @param	{String}	type		반환 받을 Color Type, "hex", "rgb", "rgba", 기본값은 "hex" (~IE8 에서는 rgba를 지원하지 않는다.)
+         * @param	{String}	type		반환 받을 Color Type, "hex", "rgb", "rgba", "hsl", "hsla" 기본값은 "hex" (~IE8 에서는 rgba를 지원하지 않는다.)
          * @return	{String}	16진수 or 10진수 Color문자열
          */
         mix: function ( fromColor, toColor, progress, type ) {
@@ -3060,6 +3060,11 @@
                     break;
                 case 'rgba':
                     return rgba;
+                case 'hsl':
+                    return this.rgbToHsl( rgba );
+                case 'hsla':
+                    var hsla = this.rgbToHsl( rgba, true );
+                    return 'hsla(' + hsla.h + ', ' + hsla.s + '%, ' + hsla.l + '%, ' + hsla.a +')';
                     break;
             }
         },
@@ -3068,7 +3073,7 @@
          * 여러가지 색상을 정비율로 혼합하여 반환.<br>
          * @param	{Array}		colors		칼라 Array
          * @param	{Number}	progress	뽑아낼 칼라 지점을 설정 0~1
-         * @param	{String}	type		반환 받을 Color Type, "hex", "rgb", "rgba", 기본값은 "hex" (~IE8 에서는 rgba를 지원하지 않는다.)
+         * @param	{String}	type		반환 받을 Color Type, "hex", "rgb", "rgba", "hsl", "hsla" 기본값은 "hex" (~IE8 에서는 rgba를 지원하지 않는다.)
          * @return	{Color}		예) #ffffff
          */
         multiMix: function ( colors, progress, type ) {
@@ -3093,7 +3098,7 @@
         /**
          * 보색 반환.
          * @param	{String}	color	"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
-         * @param	{String}	type		반환 받을 Color Type, "hex", "rgb", "rgba", 기본값은 지정한 color값의 type (~IE8 에서는 rgba를 지원하지 않는다.)
+         * @param	{String}	type		반환 받을 Color Type, "hex", "rgb", "rgba", "hsl", "hsla" 기본값은 지정한 color값의 type (~IE8 에서는 rgba를 지원하지 않는다.)
          * @return	{Color}		예) #ffffff
          */
         complementary: function ( color, type ) {
@@ -3105,7 +3110,7 @@
         /**
          * 회색톤 반환.
          * @param	{String}	color	"hex", "rgb", "rgba" Color문자열 예) #ffffff, rgb(0, 0, 0), rgba(0, 0, 0, 0)
-         * @param	{String}	type		반환 받을 Color Type, "hex", "rgb", "rgba", 기본값은 지정한 color값의 type (~IE8 에서는 rgba를 지원하지 않는다.)
+         * @param	{String}	type		반환 받을 Color Type, "hex", "rgb", "rgba", "hsl", "hsla", 기본값은 지정한 color값의 type (~IE8 에서는 rgba를 지원하지 않는다.)
          * @return	{Color}		예) #ffffff
          */
         grayscale: function ( color, type ) {
