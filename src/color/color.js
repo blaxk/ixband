@@ -34,8 +34,8 @@ ixBand.color = {
 
     TYPES: { HEX: 'hex', RGB: 'rgb', RGBA: 'rgba', HSL: 'hsl', HSLA: 'hsla' },
 
-    REG_HEX: /^#?([\da-fA-F]{2})([\da-fA-F]{2})([\da-fA-F]{2})(\ufffe)?/,
-    REG_HEX3: /^#?([\da-fA-F]{1})([\da-fA-F]{1})([\da-fA-F]{1})(\ufffe)?/,
+    REG_HEX: /^#([\da-fA-F]{2})([\da-fA-F]{2})([\da-fA-F]{2})(\ufffe)?/,
+    REG_HEX3: /^#([\da-fA-F]{1})([\da-fA-F]{1})([\da-fA-F]{1})(\ufffe)?/,
     REG_RGB: /rgba?\(([\d]{1,3}), ?([\d]{1,3}), ?([\d]{1,3}),? ?([.\d]*)?\)/,
     REG_HSL: /hsla?\(([.\d]*), ?([.\d]*%), ?(.[\d]*%),? ?([.\d]*)?\)/,
 
@@ -135,7 +135,7 @@ ixBand.color = {
     /**
      * RGB문자열을 Hex문자열로 반환.
      * @param	{String}	color		"rgb(255, 255, 255)" 표기법
-     * @return	{String}	"FFFFFF" 16진수 표기법, "#"은 제거된다.
+     * @return	{String}	"#FFFFFF"
      */
     rgbToHex: function ( color ) {
         return color.replace( this.REG_RGB, function ( str, r, g, b, a ) {
@@ -145,7 +145,7 @@ ixBand.color = {
              uint = a << 24 | r << 16 | g << 8 | b;
              */
             var uint = r << 16 | g << 8 | b;
-            return $B.string.format( uint.toString(16), 6 );
+            return '#' + $B.string.format( uint.toString(16), 6 );
         });
     },
 
@@ -240,14 +240,14 @@ ixBand.color = {
     /**
      * Color문자열 ("hex", "rgb", "rgba", "hsl", "hsla", "keyword")을 Hex문자열로 변환하여 반환.
      * @param	{String}	color		Color문자열
-     * @return	{String}	Hex문자열 "FFFFFF" 16진수 표기법, "#"은 제거된다.
+     * @return	{String}
      */
     toHex: function ( color ) {
         var type = this.type( color, 'color.toHex() : "' + color + '" ' + MSG_NOT_COLOR );
 
         switch ( type ) {
             case 'hex':
-                return color.replace( '#', '' );
+                return color;
                 break;
             case 'rgb':
             case 'rgba':
@@ -411,7 +411,7 @@ ixBand.color = {
                 return this.toHsla( color );
                 break;
             default:
-                return '#' + this.toHex( color );
+                return this.toHex( color );
                 break;
         }
     },
@@ -446,7 +446,7 @@ ixBand.color = {
 
         switch ( reType ) {
             case 'hex':
-                return '#' + this.rgbToHex( rgba );
+                return this.rgbToHex( rgba );
                 break;
             case 'rgb':
                 return 'rgb(' + r + ', ' + g + ', ' + b + ')';
