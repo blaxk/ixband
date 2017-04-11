@@ -252,7 +252,7 @@ extend( $B, {
 
     //Color check
     isColor: function ( value ) {
-        return '';
+        return $B.color.is( value );
     },
 
     //Date check

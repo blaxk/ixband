@@ -73,7 +73,7 @@ ixBand.color = {
             return this.TYPES[typeName[1].toUpperCase()];
         } else if ( this.REG_HEX.test(color) || this.REG_HEX3.test(color) ) {
             return this.TYPES.HEX;
-        } else if ( this.KEYWORDS[color.toLowerCase()] ) {
+        } else if ( typeof color === 'string' && this.KEYWORDS[color.toLowerCase()] ) {
             return 'keyword'
         } else {
             if ( errorMsg ) warning( errorMsg );

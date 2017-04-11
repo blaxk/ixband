@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.0.1 (1704110951)
+ * @version v1.0.1 (1704111029)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -465,7 +465,7 @@
     
         //Color check
         isColor: function ( value ) {
-            return '';
+            return $B.color.is( value );
         },
     
         //Date check
@@ -2680,7 +2680,7 @@
                 return this.TYPES[typeName[1].toUpperCase()];
             } else if ( this.REG_HEX.test(color) || this.REG_HEX3.test(color) ) {
                 return this.TYPES.HEX;
-            } else if ( this.KEYWORDS[color.toLowerCase()] ) {
+            } else if ( typeof color === 'string' && this.KEYWORDS[color.toLowerCase()] ) {
                 return 'keyword'
             } else {
                 if ( errorMsg ) warning( errorMsg );
