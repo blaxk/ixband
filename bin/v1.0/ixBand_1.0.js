@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.0.1 (1704111029)
+ * @version v1.0.1 (1704141141)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -4711,7 +4711,7 @@
                     totalPercent: this._valueToPercent( this._startValue, this._endValue, value ),
                     value: value,
                     index: datas.activeIndex,
-                    data: datas.data
+                    data: datas.data.data
                 };
             } else {
                 evtData = {};
@@ -6352,7 +6352,7 @@
     /**
      * 설정한 사이즈에 따라 window resize이벤트를 통해서 해당 이벤트를 발생시킨다. (IE9~)
      * Event : responsive, resize
-     * Event Properties : e.percent, e.totalPercent, e.index, e.value, e.data
+     * Event Properties : e.responsiveType
      * @param   {String}    type        ex) 'width' or 'height'
      * @param   {Array}     positions   포지션 데이타 배열, [{min:Number, max:Number, type:String}, ...
      */

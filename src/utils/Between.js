@@ -119,7 +119,7 @@ ixBand.utils.Between = $B.Class.extend({
                 totalPercent: this._valueToPercent( this._startValue, this._endValue, value ),
                 value: value,
                 index: datas.activeIndex,
-                data: datas.data
+                data: datas.data.data
             };
         } else {
             evtData = {};
