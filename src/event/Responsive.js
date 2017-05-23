@@ -15,7 +15,14 @@ ixBand.event.Responsive = $B.Class.extend({
     _positions: [],
 
     initialize: function ( type, positions ) {
-        this._sizeProp = ( type === 'height' )? 'innerHeight' : 'innerWidth';
+        if ( $B.ua.MAC && $B.ua.SAFARI ) {
+            this._sizeTarget = document.documentElement;
+            this._sizeProp = ( type === 'height' )? 'clientHeight' : 'clientWidth';
+        } else {
+            this._sizeTarget = window;
+            this._sizeProp = ( type === 'height' )? 'innerHeight' : 'innerWidth';
+        }
+
         this._setPositions( positions );
         return this;
     },
@@ -28,7 +35,7 @@ ixBand.event.Responsive = $B.Class.extend({
      */
     responsiveType: function () {
         if ( $B.ua.WINDOWS_PHONE || !$B.ua.DOC_MODE_IE9_LT ) {
-            return this._getSizeType( window[this._sizeProp] );
+            return this._getSizeType( this._sizeTarget[this._sizeProp] );
         } else {
             return this._positions[this._positions.length - 1].type;
         }
