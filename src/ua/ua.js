@@ -8,7 +8,9 @@ ixBand.ua = (function () {
     var nua = navigator.userAgent.toLowerCase(),
         docMode = document.documentMode,
         isWindows = nua.indexOf('windows') > -1,
-        isLinuxPlatform = ( '' + navigator.platform ).toLowerCase().indexOf( 'linux' ) > -1;
+        isLinuxPlatform = ( '' + navigator.platform ).toLowerCase().indexOf( 'linux' ) > -1,
+        //IE11부터는 appName이 Netscape로 나오기때문에 docMode도 체크
+        isIE = navigator.appName == 'Microsoft Internet Explorer' || docMode > 10;
 
     /**
      * 브라우져, OS 체크
@@ -17,7 +19,7 @@ ixBand.ua = (function () {
     var ua = {
         IE_VERSION: 0,
         DOC_MODE: docMode || 0,
-        MSIE: false,
+        MSIE: isIE,
         EDGE: nua.indexOf( 'edge' ) > -1,
         IE7_LT: false,//ie7미만 (~6)
         IE8_LT: false,//ie8미만 (~7)
@@ -30,7 +32,7 @@ ixBand.ua = (function () {
         DOC_MODE_IE11_LT: false,//문서모드 11미만
         DOC_MODE_IE12_LT: false,//문서모드 12미만
         IE_COMPATIBLE: false,//호환성모드
-        SAFARI: nua.indexOf( 'safari' ) > -1 && nua.indexOf( 'chrome' ) == -1 && !isLinuxPlatform,
+        SAFARI: nua.indexOf( 'safari' ) > -1 && nua.indexOf( 'chrome' ) == -1 && !isLinuxPlatform && !isIE,
         FIREFOX: nua.indexOf( 'firefox' ) > -1 && !/compatible|webkit/.test( nua ),
         OPERA: /\b(opera|opr)/.test( nua ),
         OPERA_MINI: /\b(opera mini)/.test( nua ),//이슈가 너무 많아 구분만 한다.
@@ -60,9 +62,6 @@ ixBand.ua = (function () {
     };
 
     ua.CHROME = ua.CHROME && !ua.SAFARI && !ua.OPERA && !ua.EDGE;
-
-    //IE11부터는 appName이 Netscape로 나오기때문에 docMode도 체크
-    ua.MSIE = navigator.appName == 'Microsoft Internet Explorer' || docMode > 10;
 
     if ( ua.MSIE ) {
         var re = new RegExp( 'msie ([0-9]{1,}[\.0-9]{0,})' );

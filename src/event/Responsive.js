@@ -15,10 +15,12 @@ ixBand.event.Responsive = $B.Class.extend({
     _positions: [],
 
     initialize: function ( type, positions ) {
-        if ( $B.ua.MAC && $B.ua.SAFARI ) {
+        if ( $B.ua.SAFARI || $B.ua.MOBILE_IOS || $B.ua.ANDROID || $B.ua.WINDOWS_PHONE ) {
+            //safari, mobile
             this._sizeTarget = document.documentElement;
             this._sizeProp = ( type === 'height' )? 'clientHeight' : 'clientWidth';
         } else {
+            //pc
             this._sizeTarget = window;
             this._sizeProp = ( type === 'height' )? 'innerHeight' : 'innerWidth';
         }
@@ -62,6 +64,7 @@ ixBand.event.Responsive = $B.Class.extend({
         return this;
     },
 
+    //override
     addListener: function ( type, callback ) {
         this._setEvents();
         $B.Class.prototype.addListener.call( this, type, callback );

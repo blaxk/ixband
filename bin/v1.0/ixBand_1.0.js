@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.0.1 (1705241212)
+ * @version v1.0.2 (1705291305)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -28,7 +28,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.0.1';
+    $B.VERSION = '1.0.2';
     
     
     //ixBand 이외의 변수를 사용할때
@@ -63,7 +63,9 @@
         var nua = navigator.userAgent.toLowerCase(),
             docMode = document.documentMode,
             isWindows = nua.indexOf('windows') > -1,
-            isLinuxPlatform = ( '' + navigator.platform ).toLowerCase().indexOf( 'linux' ) > -1;
+            isLinuxPlatform = ( '' + navigator.platform ).toLowerCase().indexOf( 'linux' ) > -1,
+            //IE11부터는 appName이 Netscape로 나오기때문에 docMode도 체크
+            isIE = navigator.appName == 'Microsoft Internet Explorer' || docMode > 10;
     
         /**
          * 브라우져, OS 체크
@@ -72,7 +74,7 @@
         var ua = {
             IE_VERSION: 0,
             DOC_MODE: docMode || 0,
-            MSIE: false,
+            MSIE: isIE,
             EDGE: nua.indexOf( 'edge' ) > -1,
             IE7_LT: false,//ie7미만 (~6)
             IE8_LT: false,//ie8미만 (~7)
@@ -85,7 +87,7 @@
             DOC_MODE_IE11_LT: false,//문서모드 11미만
             DOC_MODE_IE12_LT: false,//문서모드 12미만
             IE_COMPATIBLE: false,//호환성모드
-            SAFARI: nua.indexOf( 'safari' ) > -1 && nua.indexOf( 'chrome' ) == -1 && !isLinuxPlatform,
+            SAFARI: nua.indexOf( 'safari' ) > -1 && nua.indexOf( 'chrome' ) == -1 && !isLinuxPlatform && !isIE,
             FIREFOX: nua.indexOf( 'firefox' ) > -1 && !/compatible|webkit/.test( nua ),
             OPERA: /\b(opera|opr)/.test( nua ),
             OPERA_MINI: /\b(opera mini)/.test( nua ),//이슈가 너무 많아 구분만 한다.
@@ -115,9 +117,6 @@
         };
     
         ua.CHROME = ua.CHROME && !ua.SAFARI && !ua.OPERA && !ua.EDGE;
-    
-        //IE11부터는 appName이 Netscape로 나오기때문에 docMode도 체크
-        ua.MSIE = navigator.appName == 'Microsoft Internet Explorer' || docMode > 10;
     
         if ( ua.MSIE ) {
             var re = new RegExp( 'msie ([0-9]{1,}[\.0-9]{0,})' );
@@ -6352,10 +6351,12 @@
         _positions: [],
     
         initialize: function ( type, positions ) {
-            if ( $B.ua.MAC && $B.ua.SAFARI ) {
+            if ( $B.ua.SAFARI || $B.ua.MOBILE_IOS || $B.ua.ANDROID || $B.ua.WINDOWS_PHONE ) {
+                //safari, mobile
                 this._sizeTarget = document.documentElement;
                 this._sizeProp = ( type === 'height' )? 'clientHeight' : 'clientWidth';
             } else {
+                //pc
                 this._sizeTarget = window;
                 this._sizeProp = ( type === 'height' )? 'innerHeight' : 'innerWidth';
             }
@@ -6399,6 +6400,7 @@
             return this;
         },
     
+        //override
         addListener: function ( type, callback ) {
             this._setEvents();
             $B.Class.prototype.addListener.call( this, type, callback );
