@@ -62,7 +62,7 @@ module.exports = function ( grunt ) {
                     'src/net/ImageLoader.js',
                     'src/net/JSLoader.js'
                 ],
-                dest: 'bin/v<%= pkg.version %>/<%= pkg.name %>_<%= pkg.version %>.js'
+                dest: 'bin/<%= pkg.name %>_<%= pkg.version %>.js'
             }
         },
         'uglify': {
@@ -75,7 +75,7 @@ module.exports = function ( grunt ) {
                     expand: true,
                     cwd: 'bin/v<%= pkg.version %>',
                     src: ['<%= pkg.name %>_<%= pkg.version %>.js'],
-                    dest: 'bin/v<%= pkg.version %>/',
+                    dest: 'bin/',
                     rename: function ( dest, src ) {
                         return dest + src.replace( /.js$/, '.min.js' );
                     }
@@ -94,7 +94,7 @@ module.exports = function ( grunt ) {
                     //ixBand new version source
                     replacements: [{
                         pattern: /\/v[0-9.]+\//g,
-                        replacement: '/v' + pkg.version + '/'
+                        replacement: '/'
                     }, {
                         pattern: /\/ixBand_([0-9.]+)(.min)*.js/g,
                         replacement: function ( match, p1, p2 ) {

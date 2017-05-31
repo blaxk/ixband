@@ -91,15 +91,14 @@ ixBand.ua = (function () {
         ua.IE_COMPATIBLE = /msie 7.*trident/.test(nua);
     }
 
+    if ( ua.EDGE ) {
+        ua.TOUCH_DEVICE = ( navigator.pointerEnabled || navigator.msPointerEnabled ) && navigator.maxTouchPoints > 0;
+    }
+
     ua.ANDROID_TABLET = ua.ANDROID && !ua.MOBILE;
     ua.WINDOWS_TABLET = ua.WINDOWS && /tablet/.test(nua) && !ua.IE_COMPATIBLE;
     ua.TABLET = ua.IPAD || ua.ANDROID_TABLET || ua.WINDOWS_TABLET;
     ua.SMART_PHONE = ( ua.MOBILE && !ua.TABLET ) || ua.WINDOWS_PHONE;
-
-    if ( ua.EDGE ) {
-        ua.TOUCH_DEVICE = navigator.pointerEnabled || navigator.msPointerEnabled;
-        ua.TOUCH_DEVICE = ua.TOUCH_DEVICE && navigator.maxTouchPoints > 0;
-    }
 
     var osMatch = nua.match( /(mac os x|os|windows phone|windows nt|android)\s([0-9\._]+)/i );
     if ( osMatch && osMatch.length > 2 ) ua.OS_VERSION = String( osMatch[2] ).replace( '_', '.' );
