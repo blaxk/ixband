@@ -1,7 +1,7 @@
 {
   "name": "ixBand",
   "version": "1.0",
-  "buildVersion": "1.0.2",
+  "buildVersion": "1.0.3b",
   "description": "ixBand.js Development.",
   "main": "bin/ixBand_1.0.min.js",
   "dependencies": {},

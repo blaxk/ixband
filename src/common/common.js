@@ -5,7 +5,8 @@ var PX_RATIO = window.devicePixelRatio || 1,
 //EventType의 크로스부라우징 처리
 var CrossTouchEvent = {};
 
-if ( 'ontouchstart' in window ) {
+//WindowsPhone IE 11에서는 touchstart event를 지원하지만 touchend 시점에 touche pointer가 있는데도 e.touches.length가 0으로 나오는 문제가 있다.
+if ( 'ontouchstart' in window && !$B.ua.MSIE ) {
     CrossTouchEvent = {touchstart: 'touchstart', touchmove: 'touchmove', touchend: 'touchend', touchcancel: 'touchcancel'};
     MS_POINTER = false;
     TOUCH_ACTION = 'touchAction';

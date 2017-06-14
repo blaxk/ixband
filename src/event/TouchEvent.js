@@ -47,6 +47,8 @@ ixBand.event.TouchEvent = $B.Class.extend({
                 if ( MS_POINTER ) {
                     if ( crossType === 'touchstart' || crossType === 'touchmove' ) {
                         this._addTouch(e);
+                    } else if ( crossType === 'touchend' || crossType === 'touchcancel' ) {
+                        this._removeTouch(e);
                     }
                 }
 
@@ -63,14 +65,8 @@ ixBand.event.TouchEvent = $B.Class.extend({
                     //이벤트 관리 함수
                     stopPropagation: function () { if (this._event) this._event.stopPropagation(); },
                     preventDefault: function () { if (this._event) this._event.preventDefault(); },
-                    touches: this._getTouches(e)
+                    touches: this._getTouches( crossType, e )
                 };
-
-                if ( MS_POINTER ) {
-                    if ( crossType === 'touchend' || crossType === 'touchcancel' ) {
-                        this._removeTouch(e);
-                    }
-                }
 
                 this.dispatch( evt.type, evt );
             }, this);
@@ -226,13 +222,12 @@ ixBand.event.TouchEvent = $B.Class.extend({
     },
 
     //크로스브라우징 TouchEvent Touches 반환
-    _getTouches: function ( event ) {
-        var touches;
+    _getTouches: function ( type, event ) {
+        var touches = [];
 
         if ( MS_POINTER ) {
-            touches = [];
             for ( var n in this._touches ) {
-                touches.push(this._touches[n]);
+                touches.push( this._touches[n] );
             }
         } else {
             touches = event.touches;

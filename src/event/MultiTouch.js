@@ -78,9 +78,9 @@ ixBand.event.MultiTouch = $B.Class.extend({
             if ( !this._enable ) return this._removeTouchEvent();
 
             var evt, pageX1, pageY1, pageX2, pageY2, clientX1, clientY1, clientX2, clientY2,
-                touches = e.touches, touch1, touch2, touchNum = e.touches.length;
+                touches = e.touches, touch1, touch2, currentTouchLength = e.touches.length;
 
-            if ( touchNum > 1 ) {
+            if ( currentTouchLength > 1 ) {
                 touch1 = touches[0];
                 touch2 = touches[1];
 
@@ -103,11 +103,8 @@ ixBand.event.MultiTouch = $B.Class.extend({
                     cClientX = this._getCenterPos( clientX1, clientX2, distanceX ),
                     cClientY = this._getCenterPos( clientY2, clientY2, distanceY );
 
-                var pointers = [{pageX: pageX1, pageY: pageY1, clientX: clientX1, clientY: clientY1},
-                    {pageX: pageX2, pageY: pageY2, clientX: clientX2, clientY: clientY2}];
-
                 evt = {
-                    type: '', pointers: pointers,
+                    type: '', pointers: this._getPointers( touches ),
                     growAngle: 0, growScale: 0, angle: 0, scale: 1,
                     degree: degree, radian: radian, radius: radius, distanceX: distanceX, distanceY: distanceY,
                     pageX: cPageX, pageY: cPageY, clientX: cClientX, clientY: cClientY, pan: false
@@ -130,6 +127,8 @@ ixBand.event.MultiTouch = $B.Class.extend({
                     this.dispatch( 'multitouchmove', evt );
                     //Start
                 } else if ( e.type == 'touchstart' ) {
+                    var touchStarted = this._hasMultiTouchStart;
+
                     this._hasMultiTouchStart = true;
                     this._startRadius = radius;
                     this._totalAngle = 0;
@@ -137,8 +136,10 @@ ixBand.event.MultiTouch = $B.Class.extend({
                     this._startDistanceX = distanceX;
                     this._startDistanceY = distanceY;
 
-                    //start시에는 grow관련값이 모두 0이다.
-                    this.dispatch( 'multitouchstart', evt );
+                    if ( !touchStarted ) {
+                        //start시에는 grow관련값이 모두 0이다.
+                        this.dispatch( 'multitouchstart', evt );
+                    }
                 }
 
                 this._oldPageX1 = pageX1;
@@ -151,7 +152,7 @@ ixBand.event.MultiTouch = $B.Class.extend({
 
             if ( e.type == 'touchend' || e.type == 'touchcancel' ) {
                 //MultiTouchStart가 발생하고 난후에만 End이벤트가 발생한다.
-                if ( this._hasMultiTouchStart ) {
+                if ( this._hasMultiTouchStart && currentTouchLength < 2 ) {
                     this._removeTouchEvent();
                     this.dispatch( 'multitouchend', this._oldEvt );
                     this._hasMultiTouchStart = false;
@@ -193,6 +194,18 @@ ixBand.event.MultiTouch = $B.Class.extend({
         if ( !this._hasTouchEvent ) return;
         this._winTouchEvent.removeListener();
         this._hasTouchEvent = false;
+    },
+
+    _getPointers: function ( touches ) {
+        var result = [],
+            length = touches.length;
+
+        for ( var i = 0; i < length; ++i ) {
+            var touch = touches[i];
+            result.push( {target: touch.target, pageX: touch.pageX, pageY: touch.pageY, clientX: touch.clientX, clientY: touch.clientY} );
+        }
+
+        return result;
     },
 
     _getCenterPos: function ( pos1, pos2, distance ) {

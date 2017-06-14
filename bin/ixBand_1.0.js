@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.0.2 (1705311538)
+ * @version v1.0.3b (1706141628)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -28,7 +28,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.0.2';
+    $B.VERSION = '1.0.3b';
     
     
     //ixBand 이외의 변수를 사용할때
@@ -216,7 +216,8 @@
     //EventType의 크로스부라우징 처리
     var CrossTouchEvent = {};
     
-    if ( 'ontouchstart' in window ) {
+    //WindowsPhone IE 11에서는 touchstart event를 지원하지만 touchend 시점에 touche pointer가 있는데도 e.touches.length가 0으로 나오는 문제가 있다.
+    if ( 'ontouchstart' in window && !$B.ua.MSIE ) {
         CrossTouchEvent = {touchstart: 'touchstart', touchmove: 'touchmove', touchend: 'touchend', touchcancel: 'touchcancel'};
         MS_POINTER = false;
         TOUCH_ACTION = 'touchAction';
@@ -5547,6 +5548,8 @@
                     if ( MS_POINTER ) {
                         if ( crossType === 'touchstart' || crossType === 'touchmove' ) {
                             this._addTouch(e);
+                        } else if ( crossType === 'touchend' || crossType === 'touchcancel' ) {
+                            this._removeTouch(e);
                         }
                     }
     
@@ -5563,14 +5566,8 @@
                         //이벤트 관리 함수
                         stopPropagation: function () { if (this._event) this._event.stopPropagation(); },
                         preventDefault: function () { if (this._event) this._event.preventDefault(); },
-                        touches: this._getTouches(e)
+                        touches: this._getTouches( crossType, e )
                     };
-    
-                    if ( MS_POINTER ) {
-                        if ( crossType === 'touchend' || crossType === 'touchcancel' ) {
-                            this._removeTouch(e);
-                        }
-                    }
     
                     this.dispatch( evt.type, evt );
                 }, this);
@@ -5726,13 +5723,12 @@
         },
     
         //크로스브라우징 TouchEvent Touches 반환
-        _getTouches: function ( event ) {
-            var touches;
+        _getTouches: function ( type, event ) {
+            var touches = [];
     
             if ( MS_POINTER ) {
-                touches = [];
                 for ( var n in this._touches ) {
-                    touches.push(this._touches[n]);
+                    touches.push( this._touches[n] );
                 }
             } else {
                 touches = event.touches;
@@ -6098,9 +6094,9 @@
                 if ( !this._enable ) return this._removeTouchEvent();
     
                 var evt, pageX1, pageY1, pageX2, pageY2, clientX1, clientY1, clientX2, clientY2,
-                    touches = e.touches, touch1, touch2, touchNum = e.touches.length;
+                    touches = e.touches, touch1, touch2, currentTouchLength = e.touches.length;
     
-                if ( touchNum > 1 ) {
+                if ( currentTouchLength > 1 ) {
                     touch1 = touches[0];
                     touch2 = touches[1];
     
@@ -6123,11 +6119,8 @@
                         cClientX = this._getCenterPos( clientX1, clientX2, distanceX ),
                         cClientY = this._getCenterPos( clientY2, clientY2, distanceY );
     
-                    var pointers = [{pageX: pageX1, pageY: pageY1, clientX: clientX1, clientY: clientY1},
-                        {pageX: pageX2, pageY: pageY2, clientX: clientX2, clientY: clientY2}];
-    
                     evt = {
-                        type: '', pointers: pointers,
+                        type: '', pointers: this._getPointers( touches ),
                         growAngle: 0, growScale: 0, angle: 0, scale: 1,
                         degree: degree, radian: radian, radius: radius, distanceX: distanceX, distanceY: distanceY,
                         pageX: cPageX, pageY: cPageY, clientX: cClientX, clientY: cClientY, pan: false
@@ -6150,6 +6143,8 @@
                         this.dispatch( 'multitouchmove', evt );
                         //Start
                     } else if ( e.type == 'touchstart' ) {
+                        var touchStarted = this._hasMultiTouchStart;
+    
                         this._hasMultiTouchStart = true;
                         this._startRadius = radius;
                         this._totalAngle = 0;
@@ -6157,8 +6152,10 @@
                         this._startDistanceX = distanceX;
                         this._startDistanceY = distanceY;
     
-                        //start시에는 grow관련값이 모두 0이다.
-                        this.dispatch( 'multitouchstart', evt );
+                        if ( !touchStarted ) {
+                            //start시에는 grow관련값이 모두 0이다.
+                            this.dispatch( 'multitouchstart', evt );
+                        }
                     }
     
                     this._oldPageX1 = pageX1;
@@ -6171,7 +6168,7 @@
     
                 if ( e.type == 'touchend' || e.type == 'touchcancel' ) {
                     //MultiTouchStart가 발생하고 난후에만 End이벤트가 발생한다.
-                    if ( this._hasMultiTouchStart ) {
+                    if ( this._hasMultiTouchStart && currentTouchLength < 2 ) {
                         this._removeTouchEvent();
                         this.dispatch( 'multitouchend', this._oldEvt );
                         this._hasMultiTouchStart = false;
@@ -6213,6 +6210,18 @@
             if ( !this._hasTouchEvent ) return;
             this._winTouchEvent.removeListener();
             this._hasTouchEvent = false;
+        },
+    
+        _getPointers: function ( touches ) {
+            var result = [],
+                length = touches.length;
+    
+            for ( var i = 0; i < length; ++i ) {
+                var touch = touches[i];
+                result.push( {target: touch.target, pageX: touch.pageX, pageY: touch.pageY, clientX: touch.clientX, clientY: touch.clientY} );
+            }
+    
+            return result;
         },
     
         _getCenterPos: function ( pos1, pos2, distance ) {
