@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.0.3b (1706141628)
+ * @version v1.0.3 (1706151011)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -28,7 +28,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.0.3b';
+    $B.VERSION = '1.0.3';
     
     
     //ixBand 이외의 변수를 사용할때
@@ -6021,7 +6021,7 @@
     /**
      * 터치 디바이스에서 대상영역의 Multi Touch Gesture검출기 생성 (Windows8.* 터치 디바이스 지원, Android 2.*에서는 지원하지 않는다.)
      * Event : multitouchstart, multitouchmove, multitouchend
-     * Event Property : type, pageX, pageY, clientX, clientY, growX, growY, pan, distance, degree, radian, pointers[{target, pageX, pageY, clientX, clientY, growX, growY}]
+     * Event Property : type, pageX, pageY, clientX, clientY, growX, growY, growAngle, growScale, angle, scale,  pan, distanceH, distanceV, degree, radian, radius, pointers[{target, pageX, pageY, clientX, clientY, growX, growY}]
      * @class	{MultiTouch}
      * @constructor
      * @param	{Element, Selector, jQuery}	target		터치이벤트 발생시킬 대상, 내장함수 querySelector() 로 구현되어졌다, 단일개체. http://www.w3.org/TR/css3-selectors/#link
@@ -6035,8 +6035,8 @@
             this._startRadius = 0;
             this._oldRadius = 0;
             this._isPan = null;
-            this._startDistanceX = 0;
-            this._startDistanceY = 0;
+            this._startDistanceH = 0;
+            this._startDistanceV = 0;
             this._oldCenterX = 0;
             this._oldCenterY = 0;
             this._oldPageX1 = 0;
@@ -6109,20 +6109,21 @@
                     clientX2 = touch2.clientX;
                     clientY2 = touch2.clientY;
     
-                    var distanceX = this._getDistance( pageX1, pageX2 ),
-                        distanceY = this._getDistance( pageY1, pageY2 ),
-                        radius = this._getRadius( distanceX, distanceY ),
-                        radian = this._getRadian( distanceX, distanceY ),
+                    var distanceH = this._getDistance( pageX1, pageX2 ),
+                        distanceV = this._getDistance( pageY1, pageY2 ),
+                        radius = this._getRadius( distanceH, distanceV ),
+                        radian = this._getRadian( distanceH, distanceV ),
                         degree = this._radianToDeg( radian ),
-                        cPageX = this._getCenterPos( pageX1, pageX2, distanceX ),
-                        cPageY = this._getCenterPos( pageY1, pageY2, distanceY ),
-                        cClientX = this._getCenterPos( clientX1, clientX2, distanceX ),
-                        cClientY = this._getCenterPos( clientY2, clientY2, distanceY );
+                        cPageX = this._getCenterPos( pageX1, pageX2, distanceH ),
+                        cPageY = this._getCenterPos( pageY1, pageY2, distanceV ),
+                        cClientX = this._getCenterPos( clientX1, clientX2, distanceH ),
+                        cClientY = this._getCenterPos( clientY1, clientY2, distanceV );
     
                     evt = {
                         type: '', pointers: this._getPointers( touches ),
                         growAngle: 0, growScale: 0, angle: 0, scale: 1,
-                        degree: degree, radian: radian, radius: radius, distanceX: distanceX, distanceY: distanceY,
+                        degree: degree, radian: radian, radius: radius,
+                        distance: radius * 2, distanceH: distanceH, distanceV: distanceV,
                         pageX: cPageX, pageY: cPageY, clientX: cClientX, clientY: cClientY, pan: false
                     };
     
@@ -6139,7 +6140,7 @@
                         evt.angle = this._totalAngle;
                         evt.scale = tScale;
                         evt.growScale = gScale;
-                        evt.pan = this._isPanEvent( this._startDistanceX, this._startDistanceY, distanceX, distanceY );
+                        evt.pan = this._isPanEvent( this._startDistanceH, this._startDistanceV, distanceH, distanceV );
                         this.dispatch( 'multitouchmove', evt );
                         //Start
                     } else if ( e.type == 'touchstart' ) {
@@ -6149,8 +6150,8 @@
                         this._startRadius = radius;
                         this._totalAngle = 0;
                         this._isPan = null;
-                        this._startDistanceX = distanceX;
-                        this._startDistanceY = distanceY;
+                        this._startDistanceH = distanceH;
+                        this._startDistanceV = distanceV;
     
                         if ( !touchStarted ) {
                             //start시에는 grow관련값이 모두 0이다.
