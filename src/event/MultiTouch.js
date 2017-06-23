@@ -26,12 +26,7 @@ ixBand.event.MultiTouch = $B.Class.extend({
         this._oldPageX1 = 0;
         this._oldPageY1 = 0;
         this._enable = true;
-        this._oldEvt = {
-            type: '', pointers: [{pageX: 0, pageY: 0, clientX: 0, clientY: 0}, {pageX: 0, pageY: 0, clientX: 0, clientY: 0}],
-            growAngle: 0, growScale: 0, angle: 0, scale: 1,
-            degree: 0, radian: 0, radius: 0, distanceX: 0, distanceY: 0,
-            pageX: 0, pageY: 0, clientX: 0, clientY: 0, pan: false
-        };
+        this._oldEvt = {};
 
         if ( MS_POINTER ) this._setTouchAction( 'none' );
         this._setEvents();
