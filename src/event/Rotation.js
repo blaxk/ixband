@@ -120,7 +120,7 @@ ixBand.event.Rotation = $B.Class.extend({
      * @return	{RotationEvent}
      */
     reset: function () {
-        if ( this._min !== null && this._max !== null ) this._progress = 0;
+        if ( this._min === null && this._max === null ) this._progress = 0;
         return this;
     },
     /**
@@ -354,7 +354,7 @@ ixBand.event.Rotation = $B.Class.extend({
     },
 
     _progressToDeg: function ( progress ) {
-        var deg = ( progress % 360 ) - ( 360 - this._baseAngle );
+        var deg = ( progress - (360 - this._baseAngle) ) % 360;
         if ( deg < 0 ) deg = 360 + deg;
         return deg;
     },
