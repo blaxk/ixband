@@ -24,7 +24,7 @@ $B.VERSION = '';
 
 
 //ixBand 이외의 변수를 사용할때
-//<script src="js/ixBand_0.6.js?ixBand=$B"></script>
+//<script src="js/ixBand.js?ixBand=$B"></script>
 (function () {
     var jsTags = document.getElementsByTagName( 'script' ),
         jsTag = jsTags[jsTags.length-1];

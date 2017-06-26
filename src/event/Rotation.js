@@ -48,7 +48,7 @@ ixBand.event.Rotation = $B.Class.extend({
                 var center = this._centerPoint,
                     point = this._getPoint( degree, center );
 
-                this._dispatch( 'rotation', undefined, degree, point, point, center, clockwise, grow );
+                this._dispatch( 'rotation', undefined, degree, point, point, center, grow );
             }
             return this;
         } else {
@@ -66,10 +66,10 @@ ixBand.event.Rotation = $B.Class.extend({
                 var clockwise = ( this._progress < progress ),
                     grow = this._getGrow( this._progress, progress, clockwise ),
                     center = this._centerPoint,
-                    deg = this._progressToDeg( progress ),
-                    point = this._getPoint( deg, center );
+                    degree = this._progressToDeg( progress ),
+                    point = this._getPoint( degree, center );
 
-                this._dispatch( 'rotation', undefined, deg, point, point, center, clockwise, grow );
+                this._dispatch( 'rotation', undefined, degree, point, point, center, grow );
             }
             return this;
         } else {
@@ -86,7 +86,7 @@ ixBand.event.Rotation = $B.Class.extend({
         var center = this._centerPoint,
             point = this._getPoint( this._degree, center );
 
-        this._dispatch( 'resize', undefined, this._degree, point, point, center, false, 0 );
+        this._dispatch( 'resize', undefined, this._degree, point, point, center, 0 );
         return this;
     },
     /**
@@ -291,21 +291,22 @@ ixBand.event.Rotation = $B.Class.extend({
             center = this._centerPoint,
             radian = this._posToRadian( offset.x, offset.y, center.x, center.y ),
             degree = this._getAngle( radian ),
-            point = this._getPoint( degree, center );
+            point = this._getPoint( degree, center ),
+            grow = this._getBetweenAngle( degree, point, center );
 
         switch ( e.type ) {
             case 'mousedown':
                 $B( document ).addEvent( 'mousemove', this._onMouse );
                 $B( document ).addEvent( 'mouseup', this._onMouse );
-                this._dispatch( 'rotationstart', e.target, degree, point, offset, center );
+                this._dispatch( 'rotationstart', e.target, degree, point, offset, center, grow, true );
                 break;
             case 'mousemove':
-                this._dispatch( 'rotationmove', e.target, degree, point, offset, center );
+                this._dispatch( 'rotationmove', e.target, degree, point, offset, center, grow, true );
                 break;
             case 'mouseup':
                 $B( document ).removeEvent( 'mousemove', this._onMouse );
                 $B( document ).removeEvent( 'mouseup', this._onMouse );
-                this._dispatch( 'rotationend', e.target, degree, point, offset, center );
+                this._dispatch( 'rotationend', e.target, degree, point, offset, center, grow, true );
                 break;
         }
     },
@@ -326,22 +327,23 @@ ixBand.event.Rotation = $B.Class.extend({
             center = this._centerPoint,
             radian = this._posToRadian( offset.x, offset.y, center.x, center.y ),
             degree = this._getAngle( radian ),
-            point = this._getPoint( degree, center );
+            point = this._getPoint( degree, center ),
+            grow = this._getBetweenAngle( degree, point, center );
 
         switch ( e.type ) {
             case 'touchstart':
                 this._winTouchEvent.addListener( 'touchmove', this._onTouch, {passive: false} );
                 this._winTouchEvent.addListener( 'touchend', this._onTouch );
                 this._winTouchEvent.addListener( 'touchcancel', this._onTouch );
-                this._dispatch( 'rotationstart', this._eventTarget, degree, point, offset, center );
+                this._dispatch( 'rotationstart', this._eventTarget, degree, point, offset, center, grow, true );
                 break;
             case 'touchmove':
-                this._dispatch( 'rotationmove', this._eventTarget, degree, point, offset, center );
+                this._dispatch( 'rotationmove', this._eventTarget, degree, point, offset, center, grow, true );
                 break;
             case 'touchend':
             case 'touchcancel':
                 this._winTouchEvent.removeListener();
-                this._dispatch( 'rotationend', this._eventTarget, degree, point, offset, center );
+                this._dispatch( 'rotationend', this._eventTarget, degree, point, offset, center, grow, true );
                 break;
         }
     },
@@ -409,35 +411,33 @@ ixBand.event.Rotation = $B.Class.extend({
     },
 
     //변화된 각도양 반환
-    _getBetweenAngle: function ( opX1, opY1, npX1, npY1, ocX, ocY, ncX, ncY ) {
-        //중심점 보정
-        var cGapX = ncX - ocX,
-            cGapY = ncY - ocY,
-            ccX = ncX - cGapX,//보정된 ncX
-            ccY = ncY - cGapY,//보정된 ncY
-            cX1 = npX1 - cGapX,//보정된 npX1
-            cY1 = npY1 - cGapY;//보정된 npY1
+    _getBetweenAngle: function ( degree, point, center ) {
+        var angle = 0;
 
-        //중심점 기준의 좌표로 보정
-        var ox = opX1 - ocX,
-            oy = opY1 - ocY,
-            nx = npX1 - ncX,
-            ny = npY1 - ncY,
-            cw = this._isClockwise( ox, oy, nx, ny ),
-            angle = this._vectorToAngle( opX1, opY1, cX1, cY1, ccX, ccY );
+        if ( this._degree !== degree ) {
+            //중심점 기준의 좌표로 보정
+            var ox = this._pointX - this._centerX,
+                oy = this._pointY - this._centerY,
+                nx = point.x - center.x,
+                ny = point.y - center.y,
+                cw = this._isClockwise( ox , oy, nx, ny );
 
-        return cw? angle : -angle;
-    },
+            if ( cw ) {
+                if ( degree < this._degree ) {
+                    angle = ( 360 - this._degree ) + degree;
+                } else {
+                    angle = degree - this._degree;
+                }
+            } else {
+                if ( degree < this._degree ) {
+                    angle = -( this._degree - degree );
+                } else {
+                    angle = -( this._degree + (360 - degree) );
+                }
+            }
+        }
 
-    //3점의 각도 구하기 (기준점 cx, cy)
-    _vectorToAngle: function ( x1, y1, x2, y2, cx, cy ) {
-        var a = Math.sqrt( Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2) ),
-            b = Math.sqrt( Math.pow(x1 - cx, 2) + Math.pow(y1 - cy, 2) ),
-            c = Math.sqrt( Math.pow(cx - x2, 2) + Math.pow(cy - y2, 2) ),
-            r = ( Math.pow(b,2) + Math.pow(c,2) - Math.pow(a,2) ) / ( 2 * b * c ),
-            radian = Math.acos( r );
-
-        return this._radianToDeg( radian );
+        return angle;
     },
 
     //시계방향인지 Boolean 으로 반환
@@ -449,31 +449,29 @@ ixBand.event.Rotation = $B.Class.extend({
         e.preventDefault();
     },
 
-    _dispatch: function ( type, target, degree, point, offset, center, clockwise, growAngle ) {
-        var isMin = false, isMax = false,
-            grow = $B.isNumber( growAngle )? growAngle : this._getBetweenAngle( this._pointX, this._pointY, point.x, point.y, this._centerX, this._centerY, center.x, center.y ),
-            progress = this._progress + grow;
+    _dispatch: function ( type, target, degree, point, offset, center, grow, userInteraction ) {
+        var progress = this._progress + grow;
 
         if ( this._min !== null && progress < this._min ) {
-            grow += this._min - progress;
+            degree = this._progressToDeg( this._min );
+            point = this._getPoint( degree, center );
+            if ( userInteraction ) {
+                grow = this._getBetweenAngle( degree, point, center );
+            } else {
+                grow += this._min - progress;
+            }
 
             progress = this._min;
-            degree = this._progressToDeg( this._min );
-            isMin = true;
         } else if ( this._max !== null && progress > this._max ) {
-            grow -= progress - this._max;
+            degree = this._progressToDeg( this._max );
+            point = this._getPoint( degree, center );
+            if ( userInteraction ) {
+                grow = this._getBetweenAngle( degree, point, center );
+            } else {
+                grow -= progress - this._max;
+            }
 
             progress = this._max;
-            degree = this._progressToDeg( this._max );
-            isMax = true;
-        }
-
-        if ( isMin || isMax ) {
-            point = this._getPoint( degree, center );
-
-            if ( !$B.isNumber(growAngle) ) {
-                grow = this._getBetweenAngle( this._pointX, this._pointY, point.x, point.y, this._centerX, this._centerY, center.x, center.y );
-            }
         }
 
         this._degree = degree;
@@ -493,7 +491,8 @@ ixBand.event.Rotation = $B.Class.extend({
             pointX: point.x,
             pointY: point.y,
             grow: grow,//grow 1회 추가된 rotation 수치
-            progress: progress//progress 시작점에서 부터의 rotation 수치
+            progress: progress,//progress 시작점에서 부터의 rotation 수치
+            userInteraction: userInteraction
         });
     }
 }, '$B.event.Rotation');
