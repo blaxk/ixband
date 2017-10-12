@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.1 (1706261340)
+ * @version v1.1.1 (1710121825)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -28,7 +28,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.1';
+    $B.VERSION = '1.1.1';
     
     
     //ixBand 이외의 변수를 사용할때
@@ -6353,6 +6353,7 @@
         _disabled: false,
         _hasEvents: false,
         _positions: [],
+        _currentSize: 0,
     
         initialize: function ( type, positions ) {
             if ( $B.ua.SAFARI || $B.ua.MOBILE_IOS || $B.ua.ANDROID || $B.ua.WINDOWS_PHONE ) {
@@ -6365,6 +6366,7 @@
                 this._sizeProp = ( type === 'height' )? 'innerHeight' : 'innerWidth';
             }
     
+            this._currentSize = this._sizeTarget[this._sizeProp];
             this._setPositions( positions );
             return this;
         },
@@ -6427,14 +6429,19 @@
     
             this._resizeHandler = $B.bind( function (e) {
                 if ( this._disabled ) return;
-                var rType = this.responsiveType();
+                var rType = this.responsiveType(),
+                    currentSize = this._sizeTarget[this._sizeProp];
     
                 if ( rType !== sizeType ) {
                     this.dispatch( 'responsive', {responsiveType: rType} );
                 }
     
-                this.dispatch( 'resize', {responsiveType: rType} );
+                if ( this._currentSize !== currentSize ) {
+                    this.dispatch( 'resize', {responsiveType: rType} );
+                }
+    
                 sizeType = rType;
+                this._currentSize = currentSize;
             }, this);
     
             $B( window ).addEvent( 'resize', this._resizeHandler );
@@ -6560,9 +6567,8 @@
             return this;
         },
         /**
-         * progress 최대값 설정, 양수만 설정가능
-         * max값을 설정하면 min값은 0이 된다.
-         * @param	{Number}	progress     최대값
+         * progress 최소값 설정, 음수, 양수 설정가능
+         * @param	{Number}	progress     최소값
          * @return	{RotationEvent}
          */
         min: function ( progress ) {
@@ -6573,8 +6579,7 @@
             return this;
         },
         /**
-         * progress 최대값 설정, 양수만 설정가능
-         * max값을 설정하면 min값은 0이 된다.
+         * progress 최대값 설정, 음수, 양수 설정가능
          * @param	{Number}	progress     최대값
          * @return	{RotationEvent}
          */
@@ -6586,7 +6591,7 @@
             return this;
         },
         /**
-         * progress reset (max값이 설정되지 않았을때만 동작)
+         * progress reset (min, max값이 설정되지 않았을때만 동작)
          * @return	{RotationEvent}
          */
         reset: function () {
@@ -6961,8 +6966,7 @@
                 pointX: point.x,
                 pointY: point.y,
                 grow: grow,//grow 1회 추가된 rotation 수치
-                progress: progress,//progress 시작점에서 부터의 rotation 수치
-                userInteraction: userInteraction
+                progress: progress//progress 시작점에서 부터의 rotation 수치
             });
         }
     }, '$B.event.Rotation');

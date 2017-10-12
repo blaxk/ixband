@@ -13,6 +13,7 @@ ixBand.event.Responsive = $B.Class.extend({
     _disabled: false,
     _hasEvents: false,
     _positions: [],
+    _currentSize: 0,
 
     initialize: function ( type, positions ) {
         if ( $B.ua.SAFARI || $B.ua.MOBILE_IOS || $B.ua.ANDROID || $B.ua.WINDOWS_PHONE ) {
@@ -25,6 +26,7 @@ ixBand.event.Responsive = $B.Class.extend({
             this._sizeProp = ( type === 'height' )? 'innerHeight' : 'innerWidth';
         }
 
+        this._currentSize = this._sizeTarget[this._sizeProp];
         this._setPositions( positions );
         return this;
     },
@@ -87,14 +89,19 @@ ixBand.event.Responsive = $B.Class.extend({
 
         this._resizeHandler = $B.bind( function (e) {
             if ( this._disabled ) return;
-            var rType = this.responsiveType();
+            var rType = this.responsiveType(),
+                currentSize = this._sizeTarget[this._sizeProp];
 
             if ( rType !== sizeType ) {
                 this.dispatch( 'responsive', {responsiveType: rType} );
             }
 
-            this.dispatch( 'resize', {responsiveType: rType} );
+            if ( this._currentSize !== currentSize ) {
+                this.dispatch( 'resize', {responsiveType: rType} );
+            }
+
             sizeType = rType;
+            this._currentSize = currentSize;
         }, this);
 
         $B( window ).addEvent( 'resize', this._resizeHandler );

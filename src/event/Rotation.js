@@ -90,9 +90,8 @@ ixBand.event.Rotation = $B.Class.extend({
         return this;
     },
     /**
-     * progress 최대값 설정, 양수만 설정가능
-     * max값을 설정하면 min값은 0이 된다.
-     * @param	{Number}	progress     최대값
+     * progress 최소값 설정, 음수, 양수 설정가능
+     * @param	{Number}	progress     최소값
      * @return	{RotationEvent}
      */
     min: function ( progress ) {
@@ -103,8 +102,7 @@ ixBand.event.Rotation = $B.Class.extend({
         return this;
     },
     /**
-     * progress 최대값 설정, 양수만 설정가능
-     * max값을 설정하면 min값은 0이 된다.
+     * progress 최대값 설정, 음수, 양수 설정가능
      * @param	{Number}	progress     최대값
      * @return	{RotationEvent}
      */
@@ -116,7 +114,7 @@ ixBand.event.Rotation = $B.Class.extend({
         return this;
     },
     /**
-     * progress reset (max값이 설정되지 않았을때만 동작)
+     * progress reset (min, max값이 설정되지 않았을때만 동작)
      * @return	{RotationEvent}
      */
     reset: function () {
@@ -491,8 +489,7 @@ ixBand.event.Rotation = $B.Class.extend({
             pointX: point.x,
             pointY: point.y,
             grow: grow,//grow 1회 추가된 rotation 수치
-            progress: progress,//progress 시작점에서 부터의 rotation 수치
-            userInteraction: userInteraction
+            progress: progress//progress 시작점에서 부터의 rotation 수치
         });
     }
 }, '$B.event.Rotation');
