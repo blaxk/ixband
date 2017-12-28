@@ -4,7 +4,7 @@
 
 /**
  * Class 객체
- * extend, addListener, removeListener, hasListener, dispatch, getEventData methods 기본 제공 (extend시 override 주의)
+ * extend, addListener, removeListener, hasListener, dispatch, methods 기본 제공 (extend시 override 주의)
  * initialize 는 기본실행
  * 주의 : instance 를 extend 하게되면 오류가 발생한다.
  * @return	{Function}
