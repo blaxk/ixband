@@ -121,10 +121,10 @@ ixBand.color = {
 
         if ( hex.length < 5 ) hex = hex.charAt(0) + hex.charAt(0) + hex.charAt(1) + hex.charAt(1) + hex.charAt(2) + hex.charAt(2);
 
-        hex.replace( this.REG_HEX, function ( str, va, vb, vc ) {
-            var r = Number('0x'+va).toString(10),
-                g = Number('0x'+vb).toString(10),
-                b = Number('0x'+vc).toString(10);
+        ( '#' + hex ).replace( this.REG_HEX, function ( str, va, vb, vc ) {
+            var r = Number( '0x' + va ).toString( 10 ),
+                g = Number( '0x' + vb ).toString( 10 ),
+                b = Number( '0x' + vc ).toString( 10 );
 
             result = {r: Number(r), g: Number(g), b: Number(b), a: 1};
         });

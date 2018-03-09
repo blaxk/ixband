@@ -62,7 +62,7 @@ module.exports = function ( grunt ) {
                     'src/net/ImageLoader.js',
                     'src/net/JSLoader.js'
                 ],
-                dest: 'bin/<%= pkg.name %>_<%= pkg.version %>.js'
+                dest: 'dist/<%= pkg.name %>_<%= pkg.version %>.js'
             }
         },
         'uglify': {
@@ -73,9 +73,9 @@ module.exports = function ( grunt ) {
             my_target: {
                 files: [{
                     expand: true,
-                    cwd: 'bin',
+                    cwd: 'dist',
                     src: ['<%= pkg.name %>_<%= pkg.version %>.js'],
-                    dest: 'bin/',
+                    dest: 'dist/',
                     rename: function ( dest, src ) {
                         return dest + src.replace( /.js$/, '.min.js' );
                     }

@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.1.1 (1710121825)
+ * @version v1.1.2 (1803091445)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -28,7 +28,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.1.1';
+    $B.VERSION = '1.1.2';
     
     
     //ixBand 이외의 변수를 사용할때
@@ -2169,7 +2169,7 @@
     
     /**
      * Class 객체
-     * extend, addListener, removeListener, hasListener, dispatch, getEventData methods 기본 제공 (extend시 override 주의)
+     * extend, addListener, removeListener, hasListener, dispatch, methods 기본 제공 (extend시 override 주의)
      * initialize 는 기본실행
      * 주의 : instance 를 extend 하게되면 오류가 발생한다.
      * @return	{Function}
@@ -2727,10 +2727,10 @@
     
             if ( hex.length < 5 ) hex = hex.charAt(0) + hex.charAt(0) + hex.charAt(1) + hex.charAt(1) + hex.charAt(2) + hex.charAt(2);
     
-            hex.replace( this.REG_HEX, function ( str, va, vb, vc ) {
-                var r = Number('0x'+va).toString(10),
-                    g = Number('0x'+vb).toString(10),
-                    b = Number('0x'+vc).toString(10);
+            ( '#' + hex ).replace( this.REG_HEX, function ( str, va, vb, vc ) {
+                var r = Number( '0x' + va ).toString( 10 ),
+                    g = Number( '0x' + vb ).toString( 10 ),
+                    b = Number( '0x' + vc ).toString( 10 );
     
                 result = {r: Number(r), g: Number(g), b: Number(b), a: 1};
             });
