@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.1.2 (1803091445)
+ * @version v1.1.2 (1803221638)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -117,6 +117,7 @@
         };
     
         ua.CHROME = ua.CHROME && !ua.SAFARI && !ua.OPERA && !ua.EDGE;
+        ua.MAC = ua.MOBILE_IOS? false : ua.MAC;
     
         if ( ua.MSIE ) {
             var re = new RegExp( 'msie ([0-9]{1,}[\.0-9]{0,})' );
@@ -188,6 +189,17 @@
         if ( ua.VERSION ) ua.VERSION += '';
     
         ua.CHROME_VERSION = getVersion( 'chrome' );
+    
+        //ios firefox (FxiOS)
+        if ( ua.MOBILE_IOS && nua.indexOf('fxios') ) {
+            ua.FIREFOX = true;
+            ua.VERSION = getVersion( 'fxios' );
+        }
+    
+        //android opera mini
+        if ( !ua.OPERA_MINI && ua.ANDROID && ua.OPERA && nua.indexOf('wv)') ) {
+            ua.OPERA_MINI = true;
+        }
     
         // 버전이 없으면 '0'을 반환
         function getVersion ( browserName ) {

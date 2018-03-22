@@ -71,15 +71,26 @@ module.exports = function ( grunt ) {
                 ASCIIOnly: true
             },
             my_target: {
-                files: [{
-                    expand: true,
-                    cwd: 'dist',
-                    src: ['<%= pkg.name %>_<%= pkg.version %>.js'],
-                    dest: 'dist/',
-                    rename: function ( dest, src ) {
-                        return dest + src.replace( /.js$/, '.min.js' );
+                files: [
+                    {
+                        expand: true,
+                        cwd: 'dist',
+                        src: ['<%= pkg.name %>_<%= pkg.version %>.js'],
+                        dest: 'dist/',
+                        rename: function ( dest, src ) {
+                            return dest + src.replace( /.js$/, '.min.js' );
+                        }
+                    },
+                    {
+                        expand: true,
+                        cwd: 'dist',
+                        src: ['<%= pkg.name %>_<%= pkg.version %>.js'],
+                        dest: 'dist/',
+                        rename: function ( dest, src ) {
+                            return dest + 'ixBand.min.js';
+                        }
                     }
-                }]
+                ]
             }
         },
         'string-replace': {
