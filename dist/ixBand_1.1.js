@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.1.2 (1803231129)
+ * @version v1.1.2 (1803231425)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -191,14 +191,14 @@
         ua.CHROME_VERSION = getVersion( 'chrome' );
     
         //ios firefox (FxiOS)
-        if ( ua.MOBILE_IOS && nua.indexOf('fxios') ) {
+        if ( ua.MOBILE_IOS && /fxios/.test(nua) ) {
             ua.FIREFOX = true;
             ua.VERSION = getVersion( 'fxios' );
             ua.SAFARI = false;
         }
     
         //android opera mini
-        if ( !ua.OPERA_MINI && ua.ANDROID && ua.OPERA && nua.indexOf('wv)') ) {
+        if ( !ua.OPERA_MINI && ua.ANDROID && ua.OPERA && /wv\)/.test(nua) ) {
             ua.OPERA_MINI = true;
         }
     
