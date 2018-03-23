@@ -139,6 +139,7 @@ ixBand.ua = (function () {
     if ( ua.MOBILE_IOS && nua.indexOf('fxios') ) {
         ua.FIREFOX = true;
         ua.VERSION = getVersion( 'fxios' );
+        ua.SAFARI = false;
     }
 
     //android opera mini

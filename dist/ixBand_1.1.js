@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.1.2 (1803221638)
+ * @version v1.1.2 (1803231129)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -194,6 +194,7 @@
         if ( ua.MOBILE_IOS && nua.indexOf('fxios') ) {
             ua.FIREFOX = true;
             ua.VERSION = getVersion( 'fxios' );
+            ua.SAFARI = false;
         }
     
         //android opera mini
