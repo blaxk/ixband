@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.1.2 (1803231425)
+ * @version v1.1.2 (1804021846)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -545,9 +545,11 @@
                         }
                     }
                     result = isSame;
+                } else if ( !val1Length && !val2Length ) {
+                    result = true;
                 } else {
-                    result = ( val1 === val2 );
-                }
+    				result = ( val1 === val2 );
+    			}
             } else if ( this.isObject(val1) && this.isObject(val2) ) {
                 val1Length = $B.object.length( val1 );
                 val2Length = $B.object.length( val2 );
@@ -560,7 +562,9 @@
                         }
                     }
                     result = isSame;
-                } else {
+    			} else if ( !val1Length && !val2Length ) {
+    				result = true;
+    			} else {
                     result = ( val1 === val2 );
                 }
             } else {

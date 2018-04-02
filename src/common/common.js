@@ -321,9 +321,11 @@ extend( $B, {
                     }
                 }
                 result = isSame;
+            } else if ( !val1Length && !val2Length ) {
+                result = true;
             } else {
-                result = ( val1 === val2 );
-            }
+				result = ( val1 === val2 );
+			}
         } else if ( this.isObject(val1) && this.isObject(val2) ) {
             val1Length = $B.object.length( val1 );
             val2Length = $B.object.length( val2 );
@@ -336,7 +338,9 @@ extend( $B, {
                     }
                 }
                 result = isSame;
-            } else {
+			} else if ( !val1Length && !val2Length ) {
+				result = true;
+			} else {
                 result = ( val1 === val2 );
             }
         } else {
