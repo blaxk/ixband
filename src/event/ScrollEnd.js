@@ -14,6 +14,7 @@ ixBand.event.ScrollEnd = $B.Class.extend({
     _correctSize: 0,
     _gap: {left: 0, right: 0, top: 0, bottom: 0},
     _active: {scrollleft: false, scrollright: false, scrolltop: false, scrollbottom: false},
+    _isClear: false,
 
     initialize: function ( target ) {
         this._target = $B( target ).element();
@@ -60,7 +61,7 @@ ixBand.event.ScrollEnd = $B.Class.extend({
     },
 
     enable: function () {
-        if ( this._enable ) return this;
+        if ( this._enable || this._isClear ) return this;
         $B( this._target ).addEvent( 'scroll', this._scrollHandler );
         this._enable = true;
         return this;
@@ -68,7 +69,7 @@ ixBand.event.ScrollEnd = $B.Class.extend({
 
     //비활성화
     disable: function () {
-        if ( !this._enable ) return this;
+        if ( !this._enable || this._isClear ) return this;
         $B( this._target ).removeEvent( 'scroll', this._scrollHandler );
         this._enable = false;
         return this;
@@ -79,6 +80,8 @@ ixBand.event.ScrollEnd = $B.Class.extend({
      * @param {String}  type    발생시킬 event type, 설정하지 않으면 등록된 모든이벤트를 대상으로 한다.
      */
     trigger: function ( type ) {
+        if ( this._isClear ) return this;
+
         var scrollX = $B( this._target ).scrollLeft(),
             scrollY = $B( this._target ).scrollTop(),
             scrollW = this._getTargetSize( 'width' ),
@@ -140,6 +143,7 @@ ixBand.event.ScrollEnd = $B.Class.extend({
     //이벤트 및 기본설정 삭제
     clear: function () {
         this.disable();
+		this._isClear = true;
         return this;
     },
 
