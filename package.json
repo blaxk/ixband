@@ -3,7 +3,7 @@
   "version": "1.1",
   "buildVersion": "1.1.2",
   "description": "ixBand.js Development.",
-  "main": "bin/ixBand_1.0.min.js",
+  "main": "dist/ixBand.min.js",
   "dependencies": {},
   "devDependencies": {
     "grunt": "^1.0.1",

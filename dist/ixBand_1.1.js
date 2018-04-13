@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.1.2 (1804091456)
+ * @version v1.1.2 (1804130907)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -7013,8 +7013,8 @@
             if ( this._target === window || this._target === document ) {
                 this._winTarget = true;
             } else if ( !/^textarea$/i.test(this._target.nodeName) ) {
-                //chrome ~55 scrollWidth, scrollHeight 1px issue
-                if ( $B.ua.ANDROID && parseInt($B.ua.CHROME_VERSION) < 56 ) {
+                //android chrome scrollWidth, scrollHeight 1px issue
+                if ( $B.ua.ANDROID && $B.ua.CHROME ) {
                     this._correctSize = 1;
                 }
             }

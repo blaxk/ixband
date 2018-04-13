@@ -22,8 +22,8 @@ ixBand.event.ScrollEnd = $B.Class.extend({
         if ( this._target === window || this._target === document ) {
             this._winTarget = true;
         } else if ( !/^textarea$/i.test(this._target.nodeName) ) {
-            //chrome ~55 scrollWidth, scrollHeight 1px issue
-            if ( $B.ua.ANDROID && parseInt($B.ua.CHROME_VERSION) < 56 ) {
+            //android chrome scrollWidth, scrollHeight 1px issue
+            if ( $B.ua.ANDROID && $B.ua.CHROME ) {
                 this._correctSize = 1;
             }
         }
