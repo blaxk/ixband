@@ -26,7 +26,13 @@ ixBand.event = (function () {
 
     var _eventCount = 0,
         _hasDomEvent = ( document.addEventListener )? true : false,
-        _hasIEEvent = ( document.attachEvent )? true : false;
+        _hasIEEvent = ( document.attachEvent )? true : false,
+        _passiveSupported = false;
+
+	try {
+		window.addEventListener( 'test', null, Object.defineProperty({}, 'passive', { get: function() { _passiveSupported = true; } }));
+	} catch(err) {}
+
 
     function getEventID () {
         return 'ixe' + new Date().getTime() + _eventCount++;
@@ -439,6 +445,8 @@ ixBand.event = (function () {
      * @return	{Function}
      */
     Evt.CustomEvents = CustomEvents;
+
+    Evt.passiveSupported = _passiveSupported;
 
     return Evt;
 }());

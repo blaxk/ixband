@@ -12,7 +12,7 @@
  * @param	{Element, Selector, jQuery}	target		터치이벤트 발생시킬 대상, 내장함수 querySelector() 로 구현되어졌다, 단일개체. http://www.w3.org/TR/css3-selectors/#link
  * @param	{Object}	options
  *      - {String}	axis		axis : vertical, horizontal, auto, (기본값 = 'horizontal')
- *      - {Boolean} preventDefault  safari v10 에서 세로축 touchstart를 막고 싶을때만 설정한다.
+ *      - {Boolean} preventDefault  safari v10 에서 세로축 touchstart를 막고 싶을때만 설정한다. (v1.1.2 에서 해결되어 해당 옵션 삭제)
  */
 ixBand.event.Swipe = $B.Class.extend({
     SWIPE_BASE_W: 40,//swipe 판별 기준 px
@@ -120,8 +120,7 @@ ixBand.event.Swipe = $B.Class.extend({
 
         //Axis을 이용하여 제스추어 방향 알아내기
         this._gAxis = new $B.event.GestureAxis( this._target, {
-            aType: this._aType,
-            preventDefault: this._options.preventDefault
+            aType: this._aType
         });
         this._gAxis.addListener( 'axis', $B.bind(function (e) {
             if ( !this._enable ) return this._winTouchEvent.removeListener();

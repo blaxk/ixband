@@ -9,7 +9,7 @@
  * @constructor
  * @param	{Element, Selector, jQuery}	target		터치이벤트 발생시킬 대상, 내장함수 querySelector() 로 구현되어졌다, 단일개체. http://www.w3.org/TR/css3-selectors/#link
  * @param   {Object}    options
- *      - {Boolean} preventDefault  safari v10 에서 세로축 touchstart를 막고 싶을때만 설정한다.
+ *      - {Boolean} preventDefault  safari v10 에서 세로축 touchstart를 막고 싶을때만 설정한다. (v1.1.2 에서 해결되어 해당 옵션 삭제)
  */
 ixBand.event.GestureAxis = $B.Class.extend({
     initialize: function ( target, options ) {
@@ -17,7 +17,7 @@ ixBand.event.GestureAxis = $B.Class.extend({
         this._options = options || {};
         this._aType = ( this._options.aType )? this._options.aType : 'auto';
         //safari v10 에서 세로축 touchstart를 막고 싶을때만 사용한다.
-        this._preventDefault = this._options.preventDefault || false;
+        //this._preventDefault = this._options.preventDefault || false;
         this._startX = 0;
         this._startY = 0;
         this._moveCount = 0;
@@ -50,6 +50,11 @@ ixBand.event.GestureAxis = $B.Class.extend({
         this._targetTouch = new $B.event.TouchEvent( this._target );
         this._winTouch = new $B.event.TouchEvent( window );
 
+        //Safari e.preventDefault() bugfix
+        if ( $B.ua.SAFARI && parseFloat($B.ua.VERSION) > 9 ) {
+			this._winTouch.addListener( 'touchmove', function () {}, {passive: false} );
+        }
+
         this._axisHandler = $B.bind( function (e) {
             var evt, pageX = this._startX, pageY = this._startY;
 
@@ -62,7 +67,7 @@ ixBand.event.GestureAxis = $B.Class.extend({
             switch ( e.type ) {
                 case 'touchstart':
                     e.stopPropagation();
-                    if ( this._preventDefault ) e.preventDefault();
+                    //if ( this._preventDefault ) e.preventDefault();
 
                     this._moveCount = 0;
                     this._startX = pageX;
@@ -95,9 +100,9 @@ ixBand.event.GestureAxis = $B.Class.extend({
                     }
                 case 'touchend':
                 case 'touchcancel':
-                    this._winTouch.removeListener( 'touchmove' );
-                    this._winTouch.removeListener( 'touchend' );
-                    this._targetTouch.removeListener( 'touchcancel' );
+					this._winTouch.removeListener( 'touchmove', this._axisHandler, {passive: false} );
+					this._winTouch.removeListener( 'touchend' );
+					this._targetTouch.removeListener( 'touchcancel' );
                     break;
             }
         }, this);

@@ -1,6 +1,6 @@
 /**
  * ixBand - Javascript Library
- * @version v1.1.2 (1804130907)
+ * @version v1.1.2 (1804161400)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function () {
@@ -3176,7 +3176,13 @@
     
         var _eventCount = 0,
             _hasDomEvent = ( document.addEventListener )? true : false,
-            _hasIEEvent = ( document.attachEvent )? true : false;
+            _hasIEEvent = ( document.attachEvent )? true : false,
+            _passiveSupported = false;
+    
+    	try {
+    		window.addEventListener( 'test', null, Object.defineProperty({}, 'passive', { get: function() { _passiveSupported = true; } }));
+    	} catch(err) {}
+    
     
         function getEventID () {
             return 'ixe' + new Date().getTime() + _eventCount++;
@@ -3589,6 +3595,8 @@
          * @return	{Function}
          */
         Evt.CustomEvents = CustomEvents;
+    
+        Evt.passiveSupported = _passiveSupported;
     
         return Evt;
     }());
@@ -5542,7 +5550,7 @@
          * 이벤트 등록
          * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
          * @param	{Function}	listener		event listener
-         * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 설정, default:false
+         * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 설정
          * 				https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener 참조
          * @return	{TouchEvent}
          */
@@ -5590,7 +5598,7 @@
                 }, this);
     
                 var evtData = {
-                    useCapture: useCapture || false,
+                    useCapture: this._getEventOption( useCapture ),
                     wrapHandler: wrapHandler
                 };
     
@@ -5604,7 +5612,7 @@
          * 이벤트 삭제, type만 입력하면 해당 타입과 일치하는 이벤트 모두 삭제, type listener모두 설정하지 않으면 대상의 모든 이벤트 삭제
          * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
          * @param	{Function}	listener		event listener
-         * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 확인 후 삭제, default:false
+         * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 확인 후 삭제
          * @return	{TouchEvent}
          */
         removeListener: function ( type, listener, useCapture ) {
@@ -5618,7 +5626,7 @@
                 if ( $B.isFunction(listener) ) {
                     for ( i = 0; i < evtLength; ++i ) {
                         var eData = events[i];
-                        if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, useCapture || false) ) {
+                        if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, this._getEventOption(useCapture)) ) {
                             this._target.removeEventListener( crossType, eData.options.wrapHandler, eData.options.useCapture );
                             events.splice( $B.array.indexOf(events, events[i]), 1 );
                         }
@@ -5649,7 +5657,7 @@
          * 이벤트 등록여부 반환
          * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
          * @param	{Function}	listener		event listener
-         * @param	{Boolean}	useCapture	useCapture || options	capture, passive 등의 설정 여부 확인, default:false
+         * @param	{Boolean}	useCapture	useCapture || options	capture, passive 등의 설정 여부 확인
          * @return	{Boolean}
          */
         hasListener: function ( type, listener, useCapture ) {
@@ -5663,7 +5671,7 @@
                     if ( !$B.isEmpty(useCapture) ) {
                         for ( i = 0; i < evtLength; ++i ) {
                             var eData = events[i];
-                            if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, useCapture || false) ) {
+                            if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, this._getEventOption(useCapture)) ) {
                                 result = true;
                                 break;
                             }
@@ -5773,6 +5781,24 @@
             }
     
             return type;
+        },
+    
+        _getEventOption: function ( useCapture ) {
+            var result;
+    
+            if ( $B.isObject(useCapture) ) {
+                if ( $B.event.passiveSupported ) {
+    				result = useCapture;
+                } else {
+                    if ( $B.isBoolean(useCapture.passive) ) {
+    					result = useCapture.passive;
+                    }
+                }
+            } else if ( $B.isBoolean(useCapture) ) {
+    			result = useCapture;
+            }
+    
+            return result;
         }
     }, '$B.event.TouchEvent');
 
@@ -5897,7 +5923,7 @@
      * @constructor
      * @param	{Element, Selector, jQuery}	target		터치이벤트 발생시킬 대상, 내장함수 querySelector() 로 구현되어졌다, 단일개체. http://www.w3.org/TR/css3-selectors/#link
      * @param   {Object}    options
-     *      - {Boolean} preventDefault  safari v10 에서 세로축 touchstart를 막고 싶을때만 설정한다.
+     *      - {Boolean} preventDefault  safari v10 에서 세로축 touchstart를 막고 싶을때만 설정한다. (v1.1.2 에서 해결되어 해당 옵션 삭제)
      */
     ixBand.event.GestureAxis = $B.Class.extend({
         initialize: function ( target, options ) {
@@ -5905,7 +5931,7 @@
             this._options = options || {};
             this._aType = ( this._options.aType )? this._options.aType : 'auto';
             //safari v10 에서 세로축 touchstart를 막고 싶을때만 사용한다.
-            this._preventDefault = this._options.preventDefault || false;
+            //this._preventDefault = this._options.preventDefault || false;
             this._startX = 0;
             this._startY = 0;
             this._moveCount = 0;
@@ -5938,6 +5964,11 @@
             this._targetTouch = new $B.event.TouchEvent( this._target );
             this._winTouch = new $B.event.TouchEvent( window );
     
+            //Safari e.preventDefault() bugfix
+            if ( $B.ua.SAFARI && parseFloat($B.ua.VERSION) > 9 ) {
+    			this._winTouch.addListener( 'touchmove', function () {}, {passive: false} );
+            }
+    
             this._axisHandler = $B.bind( function (e) {
                 var evt, pageX = this._startX, pageY = this._startY;
     
@@ -5950,7 +5981,7 @@
                 switch ( e.type ) {
                     case 'touchstart':
                         e.stopPropagation();
-                        if ( this._preventDefault ) e.preventDefault();
+                        //if ( this._preventDefault ) e.preventDefault();
     
                         this._moveCount = 0;
                         this._startX = pageX;
@@ -5983,9 +6014,9 @@
                         }
                     case 'touchend':
                     case 'touchcancel':
-                        this._winTouch.removeListener( 'touchmove' );
-                        this._winTouch.removeListener( 'touchend' );
-                        this._targetTouch.removeListener( 'touchcancel' );
+    					this._winTouch.removeListener( 'touchmove', this._axisHandler, {passive: false} );
+    					this._winTouch.removeListener( 'touchend' );
+    					this._targetTouch.removeListener( 'touchcancel' );
                         break;
                 }
             }, this);
@@ -7195,7 +7226,7 @@
      * @param	{Element, Selector, jQuery}	target		터치이벤트 발생시킬 대상, 내장함수 querySelector() 로 구현되어졌다, 단일개체. http://www.w3.org/TR/css3-selectors/#link
      * @param	{Object}	options
      *      - {String}	axis		axis : vertical, horizontal, auto, (기본값 = 'horizontal')
-     *      - {Boolean} preventDefault  safari v10 에서 세로축 touchstart를 막고 싶을때만 설정한다.
+     *      - {Boolean} preventDefault  safari v10 에서 세로축 touchstart를 막고 싶을때만 설정한다. (v1.1.2 에서 해결되어 해당 옵션 삭제)
      */
     ixBand.event.Swipe = $B.Class.extend({
         SWIPE_BASE_W: 40,//swipe 판별 기준 px
@@ -7303,8 +7334,7 @@
     
             //Axis을 이용하여 제스추어 방향 알아내기
             this._gAxis = new $B.event.GestureAxis( this._target, {
-                aType: this._aType,
-                preventDefault: this._options.preventDefault
+                aType: this._aType
             });
             this._gAxis.addListener( 'axis', $B.bind(function (e) {
                 if ( !this._enable ) return this._winTouchEvent.removeListener();

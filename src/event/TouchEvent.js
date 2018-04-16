@@ -24,7 +24,7 @@ ixBand.event.TouchEvent = $B.Class.extend({
      * 이벤트 등록
      * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
      * @param	{Function}	listener		event listener
-     * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 설정, default:false
+     * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 설정
      * 				https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener 참조
      * @return	{TouchEvent}
      */
@@ -72,7 +72,7 @@ ixBand.event.TouchEvent = $B.Class.extend({
             }, this);
 
             var evtData = {
-                useCapture: useCapture || false,
+                useCapture: this._getEventOption( useCapture ),
                 wrapHandler: wrapHandler
             };
 
@@ -86,7 +86,7 @@ ixBand.event.TouchEvent = $B.Class.extend({
      * 이벤트 삭제, type만 입력하면 해당 타입과 일치하는 이벤트 모두 삭제, type listener모두 설정하지 않으면 대상의 모든 이벤트 삭제
      * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
      * @param	{Function}	listener		event listener
-     * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 확인 후 삭제, default:false
+     * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 확인 후 삭제
      * @return	{TouchEvent}
      */
     removeListener: function ( type, listener, useCapture ) {
@@ -100,7 +100,7 @@ ixBand.event.TouchEvent = $B.Class.extend({
             if ( $B.isFunction(listener) ) {
                 for ( i = 0; i < evtLength; ++i ) {
                     var eData = events[i];
-                    if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, useCapture || false) ) {
+                    if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, this._getEventOption(useCapture)) ) {
                         this._target.removeEventListener( crossType, eData.options.wrapHandler, eData.options.useCapture );
                         events.splice( $B.array.indexOf(events, events[i]), 1 );
                     }
@@ -131,7 +131,7 @@ ixBand.event.TouchEvent = $B.Class.extend({
      * 이벤트 등록여부 반환
      * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
      * @param	{Function}	listener		event listener
-     * @param	{Boolean}	useCapture	useCapture || options	capture, passive 등의 설정 여부 확인, default:false
+     * @param	{Boolean}	useCapture	useCapture || options	capture, passive 등의 설정 여부 확인
      * @return	{Boolean}
      */
     hasListener: function ( type, listener, useCapture ) {
@@ -145,7 +145,7 @@ ixBand.event.TouchEvent = $B.Class.extend({
                 if ( !$B.isEmpty(useCapture) ) {
                     for ( i = 0; i < evtLength; ++i ) {
                         var eData = events[i];
-                        if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, useCapture || false) ) {
+                        if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, this._getEventOption(useCapture)) ) {
                             result = true;
                             break;
                         }
@@ -255,5 +255,23 @@ ixBand.event.TouchEvent = $B.Class.extend({
         }
 
         return type;
+    },
+
+    _getEventOption: function ( useCapture ) {
+        var result;
+
+        if ( $B.isObject(useCapture) ) {
+            if ( $B.event.passiveSupported ) {
+				result = useCapture;
+            } else {
+                if ( $B.isBoolean(useCapture.passive) ) {
+					result = useCapture.passive;
+                }
+            }
+        } else if ( $B.isBoolean(useCapture) ) {
+			result = useCapture;
+        }
+
+        return result;
     }
 }, '$B.event.TouchEvent');
