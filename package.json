@@ -3,7 +3,7 @@
   "version": "1.2.0",
   "fileName": "ixBand_1.2",
   "description": "ixBand.js Development.",
-  "main": "dist/ixBand.js",
+  "main": "dist/ixBand_1.2.js",
   "devDependencies": {
     "grunt": "^1.0.3",
     "grunt-cli": "^1.2.0",
