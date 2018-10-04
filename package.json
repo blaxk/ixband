@@ -1,9 +1,10 @@
 {
   "name": "ixband",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "fileName": "ixBand_1.2",
-  "description": "ixBand.js Development.",
+  "description": "Javascript Core Library",
   "main": "dist/ixBand_1.2.js",
+  "dependencies": {},
   "devDependencies": {
     "grunt": "^1.0.3",
     "grunt-cli": "^1.2.0",
@@ -21,8 +22,14 @@
   "homepage": "http://ixband.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/blaxk/ixband.git"
+    "url": "git+https://github.com/blaxk/ixband.git"
   },
+  "keywords": [
+    "ixband"
+  ],
   "author": "blaxk",
-  "license": "MIT"
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/blaxk/ixband/issues"
+  }
 }

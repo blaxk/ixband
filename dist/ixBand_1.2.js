@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.2.0 (1810041402)
+ * @version v1.2.1 (1810041524)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
@@ -65,7 +65,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.2.0';
+    $B.VERSION = '1.2.1';
     
 
 
