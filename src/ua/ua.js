@@ -5,6 +5,8 @@
 // ############################################################################ //
 
 ixBand.ua = (function () {
+	if ( !SUPPORT_WINDOW ) return {};
+
     var nua = navigator.userAgent.toLowerCase(),
         docMode = document.documentMode,
         isWindows = nua.indexOf('windows') > -1,
