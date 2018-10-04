@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.2.0 (1810041352)
+ * @version v1.2.0 (1810041402)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
