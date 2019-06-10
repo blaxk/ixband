@@ -36,7 +36,7 @@ ixBand.utils = {
 
             //getter
         } else {
-            var reg = new RegExp( '(?:' + name + '=)([\\w\\W][^;]*)' ),
+            var reg = new RegExp( '(?:' + name + '=)([^;]*)' ),
                 result = undefined;
 
             document.cookie.replace( reg, function ( fs, v ) {

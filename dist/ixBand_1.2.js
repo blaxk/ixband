@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.2.1 (1810041524)
+ * @version v1.2.2 (1906101328)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
@@ -65,7 +65,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.2.1';
+    $B.VERSION = '1.2.2';
     
 
 
@@ -4408,7 +4408,7 @@
     
                 //getter
             } else {
-                var reg = new RegExp( '(?:' + name + '=)([\\w\\W][^;]*)' ),
+                var reg = new RegExp( '(?:' + name + '=)([^;]*)' ),
                     result = undefined;
     
                 document.cookie.replace( reg, function ( fs, v ) {
@@ -7201,8 +7201,14 @@
             var result = 0,
                 prop = $B.string.capitalize( type );
     
-            if ( this._winTarget ) {
-                result = $B.measure['document' + prop]() - $B.measure['window' + prop]();
+            if (this._winTarget) {
+                //Chrome같이 주소창이 들어갔다 나왔다 하는 브라우저에서 스크롤값을 제대로 못가져오는 시점이 발생하여 되도록 gap을 주소창 높이만큼 설정하고 사용하는게 좋을것 같다.
+                if ($B.ua.MOBILE_IOS || $B.ua.ANDROID) {
+                    //주소창을 제외한 윈도우 사이즈를 뺀다
+                    result = $B.measure['document' + prop]() - window['inner' + prop];
+                } else {
+                    result = $B.measure['document' + prop]() - $B.measure['window' + prop]();
+                }
             } else {
                 result = this._target['scroll' + prop] - this._target['client' + prop];
                 result = result - this._correctSize;
