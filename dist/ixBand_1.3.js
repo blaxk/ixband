@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.2.2 (1906101328)
+ * @version v1.3.0 (1910241458)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
@@ -65,7 +65,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.2.2';
+    $B.VERSION = '1.3.0';
     
 
 
@@ -4387,9 +4387,10 @@
          * @param {String}	path			경로설정, 하위폴더에서도 해당 쿠키를 사용하기 위해서 설정, "/"로 시작해야 한다. ex: "/sub/", 기본값 "/"
          * @param {String}	domain			서브도메인을 설정
          * @param {Boolean} secure          SSL을 이용하여 서버에 쿠키를 전송
+         * @param {String} 	sameSite        SameSite 설정 ("strict", "lax", "")
          * @return	{String}	cookieValue, decodeURIComponent로 디코딩되어 반환, 찾지 못하면 undefined
          */
-        cookie: function ( name, value, expireMinutes, path, domain, secure ) {
+    	cookie: function (name, value, expireMinutes, path, domain, secure, sameSite ) {
             //setter
             if ( typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ) {
                 var min = ( expireMinutes || expireMinutes == 0 )? Number( expireMinutes ) : '',
@@ -4401,7 +4402,8 @@
                     result += ' expires=' + today.toUTCString() + ';';
                 }
     
-                if ( typeof domain === 'string' && domain.length > 0 ) result += ' domain=' + domain + ';';
+    			if ( typeof domain === 'string' && domain.length > 0 ) result += ' domain=' + domain + ';';
+    			if ( typeof sameSite === 'string' ) result += ' samesite=' + sameSite.toLowerCase() + ';';
                 if ( secure === true )  result += ' secure';
     
                 document.cookie = result;
