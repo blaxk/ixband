@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.3.0 (1910241458)
+ * @version v1.3.1 (1911070938)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
@@ -65,7 +65,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.3.0';
+    $B.VERSION = '1.3.1';
     
 
 
@@ -635,7 +635,12 @@
         //Undefined check
         isUndefined: function ( value ) {
             return undefined === value;
-        }
+    	},
+    	
+    	//정수 check
+    	isInteger: function (value) {
+    		return Number.isInteger ? Number.isInteger(value) : typeof value === 'number' && this.isFinite(value) && Math.floor(value) === value;
+    	}
     });
 
 

@@ -393,5 +393,10 @@ extend( $B, {
     //Undefined check
     isUndefined: function ( value ) {
         return undefined === value;
-    }
+	},
+	
+	//정수 check
+	isInteger: function (value) {
+		return Number.isInteger ? Number.isInteger(value) : typeof value === 'number' && this.isFinite(value) && Math.floor(value) === value;
+	}
 });
