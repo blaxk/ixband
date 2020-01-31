@@ -243,22 +243,25 @@ ixBand.string = {
      * @param {String}  str
      * @returns {Boolean, String, Number, Null, Undefined}
      */
-    convertDataType: function ( str ) {
-        str = String( str );
-
-        if ( str ) {
+	convertDataType: function (str) {
+        if (str && typeof str === 'string') {
             if ( /^\s*true\s*$/.test(str) ) {
                 str = Boolean( str );
             } else if ( /^\s*false\s*$/.test(str) ) {
                 str = Boolean();
-            } else if ( /^\s*-*[0-9\.]+\s*$/.test(str) ) {
-                str = Number( str );
+			} else if (/^\s*-*[0-9\.]+\s*$/.test(str)) {
+				str = str.replace(/\s/g, '');
+
+				if (!/^0[0-9]+/.test(str) && !/^-0[0-9]+/.test(str) && !(str.length === 1 && str === '-')) {
+					str = Number(str);
+				}
             } else if ( /^\s*null\s*$/.test(str) ) {
                 str = null;
             } else if ( /^\s*undefined\s*$/.test(str) ) {
                 str = undefined;
             }
-        }
+		}
+		
         return str;
     }
 };
