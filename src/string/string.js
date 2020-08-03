@@ -252,8 +252,8 @@ ixBand.string = {
 			} else if (/^\s*-*[0-9\.]+\s*$/.test(str)) {
 				str = str.replace(/\s/g, '');
 
-				if (!/^0[0-9]+/.test(str) && !/^-0[0-9]+/.test(str) && !(str.length === 1 && str === '-')) {
-					str = Number(str);
+				if (!/^0[0-9]+/.test(str) && !/^-0[0-9]+/.test(str) && !(str.length === 1 && str === '-') && (str.match(/\./g) || []).length < 2) {
+					str = Number(str)
 				}
             } else if ( /^\s*null\s*$/.test(str) ) {
                 str = null;

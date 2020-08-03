@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.3.2 (2001311241)
+ * @version v1.3.3 (2008031529)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
@@ -65,7 +65,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.3.2';
+    $B.VERSION = '1.3.3';
     
 
 
@@ -4062,8 +4062,8 @@
     			} else if (/^\s*-*[0-9\.]+\s*$/.test(str)) {
     				str = str.replace(/\s/g, '');
     
-    				if (!/^0[0-9]+/.test(str) && !/^-0[0-9]+/.test(str) && !(str.length === 1 && str === '-')) {
-    					str = Number(str);
+    				if (!/^0[0-9]+/.test(str) && !/^-0[0-9]+/.test(str) && !(str.length === 1 && str === '-') && (str.match(/\./g) || []).length < 2) {
+    					str = Number(str)
     				}
                 } else if ( /^\s*null\s*$/.test(str) ) {
                     str = null;
