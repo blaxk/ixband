@@ -180,7 +180,7 @@ ixBand.event.Rotation = $B.Class.extend({
         this._centerY = center.y;
 
         // touch-action ----------
-        if ( navigator.pointerEnabled ) {
+		if ( navigator.pointerEnabled || 'onpointerdown' in window ) {
             this._msTouchAction = 'touch-action';
         } else if ( navigator.msPointerEnabled ) {
             this._msTouchAction = '-ms-touch-action';

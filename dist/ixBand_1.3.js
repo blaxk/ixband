@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.3.3 (2008031529)
+ * @version v1.3.4 (2012101541)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
@@ -65,7 +65,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.3.3';
+    $B.VERSION = '1.3.4';
     
 
 
@@ -93,7 +93,7 @@
             IE_VERSION: 0,
             DOC_MODE: docMode || 0,
             MSIE: isIE,
-            EDGE: nua.indexOf( 'edge' ) > -1,
+    		EDGE: /\s(edge|edg\/)/.test( nua ),
             IE7_LT: false,//ie7미만 (~6)
             IE8_LT: false,//ie8미만 (~7)
             IE9_LT: false,//ie9미만 (~8)
@@ -166,7 +166,7 @@
         }
     
         if ( ua.EDGE ) {
-            ua.TOUCH_DEVICE = ( navigator.pointerEnabled || navigator.msPointerEnabled ) && navigator.maxTouchPoints > 0;
+    		ua.TOUCH_DEVICE = ( navigator.pointerEnabled || navigator.msPointerEnabled || 'onpointerdown' in window ) && navigator.maxTouchPoints > 0;
         }
     
         ua.ANDROID_TABLET = ua.ANDROID && !ua.MOBILE;
@@ -193,8 +193,8 @@
             } else {
                 ua.VERSION = getVersion( 'opr' ) || getVersion();
             }
-        } else if ( ua.EDGE ) {
-            ua.VERSION = getVersion( 'edge' );
+    	} else if ( ua.EDGE ) {
+    		ua.VERSION = getVersion( 'edge' ) || getVersion( 'edg' );
         } else {
             ua.VERSION = getVersion();
         }
@@ -225,7 +225,7 @@
             var matchs = nua.match( /version\/([\d.]*)/ );
     
             if ( browserName ) {
-                var reg = new RegExp( browserName + '/([\\d.]*)' );
+                var reg = new RegExp( '\\s' + browserName + '/([\\d.]*)' );
                 matchs = nua.match( reg );
             }
     
@@ -253,7 +253,7 @@
         MS_POINTER = false;
         TOUCH_ACTION = 'touchAction';
         //IE11~
-    } else if ( navigator.pointerEnabled ) {
+    } else if ( navigator.pointerEnabled || 'onpointerdown' in window ) {
         CrossTouchEvent = {touchstart: 'pointerdown', touchmove: 'pointermove', touchend: 'pointerup', touchcancel: 'pointercancel'};
         TOUCH_ACTION = 'touchAction';
         //IE10
@@ -6733,7 +6733,7 @@
             this._centerY = center.y;
     
             // touch-action ----------
-            if ( navigator.pointerEnabled ) {
+    		if ( navigator.pointerEnabled || 'onpointerdown' in window ) {
                 this._msTouchAction = 'touch-action';
             } else if ( navigator.msPointerEnabled ) {
                 this._msTouchAction = '-ms-touch-action';

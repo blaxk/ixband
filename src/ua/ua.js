@@ -22,7 +22,7 @@ ixBand.ua = (function () {
         IE_VERSION: 0,
         DOC_MODE: docMode || 0,
         MSIE: isIE,
-        EDGE: nua.indexOf( 'edge' ) > -1,
+		EDGE: /\s(edge|edg\/)/.test( nua ),
         IE7_LT: false,//ie7미만 (~6)
         IE8_LT: false,//ie8미만 (~7)
         IE9_LT: false,//ie9미만 (~8)
@@ -95,7 +95,7 @@ ixBand.ua = (function () {
     }
 
     if ( ua.EDGE ) {
-        ua.TOUCH_DEVICE = ( navigator.pointerEnabled || navigator.msPointerEnabled ) && navigator.maxTouchPoints > 0;
+		ua.TOUCH_DEVICE = ( navigator.pointerEnabled || navigator.msPointerEnabled || 'onpointerdown' in window ) && navigator.maxTouchPoints > 0;
     }
 
     ua.ANDROID_TABLET = ua.ANDROID && !ua.MOBILE;
@@ -122,8 +122,8 @@ ixBand.ua = (function () {
         } else {
             ua.VERSION = getVersion( 'opr' ) || getVersion();
         }
-    } else if ( ua.EDGE ) {
-        ua.VERSION = getVersion( 'edge' );
+	} else if ( ua.EDGE ) {
+		ua.VERSION = getVersion( 'edge' ) || getVersion( 'edg' );
     } else {
         ua.VERSION = getVersion();
     }
@@ -154,7 +154,7 @@ ixBand.ua = (function () {
         var matchs = nua.match( /version\/([\d.]*)/ );
 
         if ( browserName ) {
-            var reg = new RegExp( browserName + '/([\\d.]*)' );
+            var reg = new RegExp( '\\s' + browserName + '/([\\d.]*)' );
             matchs = nua.match( reg );
         }
 

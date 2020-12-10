@@ -11,7 +11,7 @@ if ( 'ontouchstart' in window && !$B.ua.MSIE ) {
     MS_POINTER = false;
     TOUCH_ACTION = 'touchAction';
     //IE11~
-} else if ( navigator.pointerEnabled ) {
+} else if ( navigator.pointerEnabled || 'onpointerdown' in window ) {
     CrossTouchEvent = {touchstart: 'pointerdown', touchmove: 'pointermove', touchend: 'pointerup', touchcancel: 'pointercancel'};
     TOUCH_ACTION = 'touchAction';
     //IE10
