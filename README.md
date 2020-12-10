@@ -1,4 +1,8 @@
 # ixBand.js
+
+[![NPM version](https://img.shields.io/npm/v/ixband.svg)](https://www.npmjs.com/package/ixband)
+[![NPM downloads](https://img.shields.io/npm/dm/ixband.svg)](https://www.npmjs.com/package/ixband)
+
 **Javascript Core Library**
 
 전문 API 개발 작업에 특화된 Javascript Core Library
