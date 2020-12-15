@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.3.6 (2012152000)
+ * @version v1.3.7 (2012152036)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
@@ -65,7 +65,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.3.6';
+    $B.VERSION = '1.3.7';
     
 
 
@@ -4900,7 +4900,7 @@
         },
         /** 타이머가 실행 중이면 true반환 */
         running: function () {
-    		return this._interval;
+    		return !!this._interval;
         },
     
         // ===============	Private Methods	=============== //

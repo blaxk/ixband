@@ -64,7 +64,7 @@ ixBand.utils.RemainTimer = $B.Class.extend({
     },
     /** 타이머가 실행 중이면 true반환 */
     running: function () {
-		return this._interval;
+		return !!this._interval;
     },
 
     // ===============	Private Methods	=============== //
