@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.3.5 (2012151927)
+ * @version v1.3.6 (2012152000)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
@@ -65,7 +65,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.3.5';
+    $B.VERSION = '1.3.6';
     
 
 
@@ -4923,7 +4923,7 @@
         },
     	
     	_delay: function () {
-    		return new Date().getTimer() - this._beginTime;
+    		return new Date().getTime() - this._beginTime;
     	}
     }, '$B.utils.RemainTimer');
 

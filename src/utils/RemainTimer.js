@@ -87,6 +87,6 @@ ixBand.utils.RemainTimer = $B.Class.extend({
     },
 	
 	_delay: function () {
-		return new Date().getTimer() - this._beginTime;
+		return new Date().getTime() - this._beginTime;
 	}
 }, '$B.utils.RemainTimer');
