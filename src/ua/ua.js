@@ -141,7 +141,7 @@ ixBand.ua = (function () {
     if ( ua.SAMSUNG_VERSION ) ua.SAMSUNG_VERSION += '';
     if ( ua.VERSION ) ua.VERSION += '';
 
-    if (/CriOS/.test(originUa)) {
+    if (ua.MOBILE_IOS && /CriOS/.test(originUa)) {
         ua.CHROME_VERSION = getVersion('CriOS', originUa);
     } else {
         ua.CHROME_VERSION = getVersion('chrome');
