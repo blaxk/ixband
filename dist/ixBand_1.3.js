@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.3.7 (2012152036)
+ * @version v1.3.8 (2303091640)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
@@ -65,7 +65,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.3.7';
+    $B.VERSION = '1.3.8';
     
 
 
@@ -78,7 +78,8 @@
     ixBand.ua = (function () {
     	if ( !SUPPORT_WINDOW ) return {};
     
-        var nua = navigator.userAgent.toLowerCase(),
+    	var originUa = navigator.userAgent,
+    		nua = originUa.toLowerCase(),
             docMode = document.documentMode,
             isWindows = nua.indexOf('windows') > -1,
             isLinuxPlatform = ( '' + navigator.platform ).toLowerCase().indexOf( 'linux' ) > -1,
@@ -134,8 +135,9 @@
             CHROME_VERSION: 0 //크롬엔진 버전
         };
     
-        ua.CHROME = ua.CHROME && !ua.SAFARI && !ua.OPERA && !ua.EDGE;
-        ua.MAC = ua.MOBILE_IOS? false : ua.MAC;
+    	//iOS 크롬에서 "CriOS"를 사용하기 시작해서 추가로 체크해준다.
+    	ua.CHROME = (ua.MOBILE_IOS && /CriOS/.test(originUa)) || (ua.CHROME && !ua.SAFARI && !ua.OPERA && !ua.EDGE);
+        ua.MAC = ua.MOBILE_IOS ? false : ua.MAC;
     
         if ( ua.MSIE ) {
             var re = new RegExp( 'msie ([0-9]{1,}[\.0-9]{0,})' );
@@ -181,8 +183,12 @@
     
         if ( ua.MSIE ) {
             ua.VERSION = ua.DOC_MODE || ua.IE_VERSION;
-        } else if ( ua.CHROME ) {
-            ua.VERSION = getVersion( 'chrome' );
+    	} else if ( ua.CHROME ) {
+    		if (/CriOS/.test(originUa)) {
+    			ua.VERSION = getVersion('CriOS', originUa);
+    		} else {
+    			ua.VERSION = getVersion('chrome');
+    		}
         } else if ( ua.FIREFOX ) {
             ua.VERSION = getVersion( 'firefox' );
         } else if ( ua.SAFARI ) {
@@ -221,12 +227,12 @@
         }
     
         // 버전이 없으면 '0'을 반환
-        function getVersion ( browserName ) {
-            var matchs = nua.match( /version\/([\d.]*)/ );
+        function getVersion ( browserName, ua ) {
+    		var matchs = nua.match( /version\/([\d.]*)/ );
     
             if ( browserName ) {
                 var reg = new RegExp( '\\s' + browserName + '/([\\d.]*)' );
-                matchs = nua.match( reg );
+    			matchs = (ua || nua).match( reg );
             }
     
             if ( matchs && matchs.length > 1 ) {
