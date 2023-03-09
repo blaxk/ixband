@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.3.8 (2303091640)
+ * @version v1.3.8 (2303091656)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
@@ -212,7 +212,11 @@
         if ( ua.SAMSUNG_VERSION ) ua.SAMSUNG_VERSION += '';
         if ( ua.VERSION ) ua.VERSION += '';
     
-        ua.CHROME_VERSION = getVersion( 'chrome' );
+        if (ua.MOBILE_IOS && /CriOS/.test(originUa)) {
+            ua.CHROME_VERSION = getVersion('CriOS', originUa);
+        } else {
+            ua.CHROME_VERSION = getVersion('chrome');
+        }
     
         //ios firefox (FxiOS)
         if ( ua.MOBILE_IOS && /fxios/.test(nua) ) {
