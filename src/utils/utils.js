@@ -37,12 +37,13 @@ ixBand.utils = {
             document.cookie = result;
 
             //getter
-        } else {
-            var reg = new RegExp( '(?:' + name + '=)([^;]*)' ),
+		} else {
+			var reg = new RegExp( '(^| )' + name + '=([^;]*)' ),
                 result = undefined;
 
-            document.cookie.replace( reg, function ( fs, v ) {
-                result = decodeURIComponent( v );
+            document.cookie.replace( reg, function ( fs, s, v ) {
+				result = decodeURIComponent(v);
+				return fs
             });
             return result;
         }

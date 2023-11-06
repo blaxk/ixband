@@ -1,6 +1,6 @@
 {
   "name": "ixband",
-  "version": "1.3.8",
+  "version": "1.3.9",
   "fileName": "ixBand_1.3",
   "description": "Javascript Core Library",
   "main": "dist/ixBand_1.3.js",

@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.3.8 (2303091656)
+ * @version v1.3.9 (2311061238)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
@@ -65,7 +65,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.3.8';
+    $B.VERSION = '1.3.9';
     
 
 
@@ -4427,12 +4427,13 @@
                 document.cookie = result;
     
                 //getter
-            } else {
-                var reg = new RegExp( '(?:' + name + '=)([^;]*)' ),
+    		} else {
+    			var reg = new RegExp( '(^| )' + name + '=([^;]*)' ),
                     result = undefined;
     
-                document.cookie.replace( reg, function ( fs, v ) {
-                    result = decodeURIComponent( v );
+                document.cookie.replace( reg, function ( fs, s, v ) {
+    				result = decodeURIComponent(v);
+    				return fs
                 });
                 return result;
             }
