@@ -64,8 +64,6 @@ CustomEvents.prototype = {
             } else {
                 delete this.__eventPool__[type];
             }
-        } else {
-            this.__eventPool__ = {};
         }
 
         return this;
