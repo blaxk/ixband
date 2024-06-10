@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.3.9 (2311061238)
+ * @version v1.3.11 (2406101732)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
@@ -65,7 +65,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.3.9';
+    $B.VERSION = '1.3.11';
     
 
 
@@ -2140,8 +2140,6 @@
                 } else {
                     delete this.__eventPool__[type];
                 }
-            } else {
-                this.__eventPool__ = {};
             }
     
             return this;
