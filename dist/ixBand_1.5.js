@@ -1,6 +1,6 @@
 /**
  * ixband - Javascript Library
- * @version v1.3.13 (2410151604)
+ * @version v1.5.0 (2506181652)
  * The MIT License (MIT), http://ixband.com
  */
 ;(function (window) {
@@ -65,7 +65,7 @@
         __debugMode = false;
     
     // ===============	Public Properties =============== //
-    $B.VERSION = '1.3.13';
+    $B.VERSION = '1.5.0';
     
 
 
@@ -121,7 +121,9 @@
             LINUX: nua.indexOf( 'linux' ) > -1,
             WEBKIT: nua.indexOf( 'webkit' ) > -1,
             MOZILLA: nua.indexOf( 'mozilla' ) > -1,
-            TOUCH_DEVICE: ( 'ontouchstart' in window ) || nua.indexOf( 'touch' ) > -1,
+    		// TOUCH_DEVICE: ( 'ontouchstart' in window ) || nua.indexOf( 'touch' ) > -1,
+    		//터치 이벤트
+    		TOUCH_DEVICE: ('ontouchstart' in window) || ('onpointerdown' in window || navigator.pointerEnabled || navigator.msPointerEnabled),
             MOBILE: nua.indexOf( 'mobile' ) > -1,
             ANDROID_TABLET: false,
             WINDOWS_TABLET: false,
@@ -167,9 +169,9 @@
             ua.IE_COMPATIBLE = /msie 7.*trident/.test(nua);
         }
     
-        if ( ua.EDGE ) {
-    		ua.TOUCH_DEVICE = ( navigator.pointerEnabled || navigator.msPointerEnabled || 'onpointerdown' in window ) && navigator.maxTouchPoints > 0;
-        }
+    	// if (ua.EDGE) {
+    	// 	// ua.TOUCH_DEVICE = ( navigator.pointerEnabled || navigator.msPointerEnabled || 'onpointerdown' in window ) && navigator.maxTouchPoints > 0;
+        // }
     
         ua.ANDROID_TABLET = ua.ANDROID && !ua.MOBILE;
         ua.WINDOWS_TABLET = ua.WINDOWS && /tablet/.test(nua) && !ua.IE_COMPATIBLE;
@@ -251,7 +253,7 @@
 
 
     var PX_RATIO = window.devicePixelRatio || 1,
-        MS_POINTER = true,
+        MS_POINTER = false,
         TOUCH_ACTION = 'msTouchAction';
     
     //EventType의 크로스부라우징 처리
@@ -260,15 +262,16 @@
     //WindowsPhone IE 11에서는 touchstart event를 지원하지만 touchend 시점에 touche pointer가 있는데도 e.touches.length가 0으로 나오는 문제가 있다.
     if ( 'ontouchstart' in window && !$B.ua.MSIE ) {
         CrossTouchEvent = {touchstart: 'touchstart', touchmove: 'touchmove', touchend: 'touchend', touchcancel: 'touchcancel'};
-        MS_POINTER = false;
         TOUCH_ACTION = 'touchAction';
         //IE11~
     } else if ( navigator.pointerEnabled || 'onpointerdown' in window ) {
         CrossTouchEvent = {touchstart: 'pointerdown', touchmove: 'pointermove', touchend: 'pointerup', touchcancel: 'pointercancel'};
-        TOUCH_ACTION = 'touchAction';
+    	MS_POINTER = true;
+    	TOUCH_ACTION = 'touchAction';
         //IE10
     } else if ( navigator.msPointerEnabled ) {
-        CrossTouchEvent = {touchstart: 'MSPointerDown', touchmove: 'MSPointerMove', touchend: 'MSPointerUp', touchcancel: 'MSPointerCancel'};
+    	CrossTouchEvent = { touchstart: 'MSPointerDown', touchmove: 'MSPointerMove', touchend: 'MSPointerUp', touchcancel: 'MSPointerCancel' };
+    	MS_POINTER = true;
     }
     //e.pointerType = (mouse==4, pen==3, touch==2)
     
@@ -5576,274 +5579,318 @@
      * TouchEvent 크로스 브라우징, 하나의 대상의 하나의 TouchEvent 객체 등록
      * @constructor
      * @param	{Element || Selector || jQuery}	target		이벤트 발생 대상
+     * @param	{Object}	options
+     *      - {Boolean}	enableMouseEvent	터치 이벤트가 지원하지 않는 환경에서 mouse이벤트를 사용할지 여부
      */
     ixBand.event.TouchEvent = $B.Class.extend({
-        POINTER_TYPES: ['', '', 'touch', 'pen', 'mouse'],
+    	POINTER_TYPES: ['', '', 'touch', 'pen', 'mouse'],
     
-        initialize: function ( target ) {
-            this._target = $B( target ).element();
-            this._touches = {};
-            this._isEndEvent = false;
+    	initialize: function (target, options) {
+    		this._target = $B(target).element();
+    		this._options = options || {};
+    		this._touches = {};
+    		this._isEndEvent = false;
     
-            this._setEvents();
-        },
+    		this._setEvents();
+    	},
     
-        // ===============	Public Methods =============== //
+    	// ===============	Public Methods =============== //
     
-        /**
-         * 이벤트 등록
-         * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
-         * @param	{Function}	listener		event listener
-         * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 설정
-         * 				https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener 참조
-         * @return	{TouchEvent}
-         */
-        addListener: function ( type, listener, useCapture ) {
-            if ( this._target && $B.ua.TOUCH_DEVICE && /^touch/i.test(type) ) {
-                useCapture = useCapture || false;
+    	/**
+    	 * 이벤트 등록
+    	 * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
+    	 * @param	{Function}	listener		event listener
+    	 * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 설정
+    	 * 				https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener 참조
+    	 * @return	{TouchEvent}
+    	 */
+    	addListener: function (type, listener, useCapture) {
+    		if (this._target && /^touch/i.test(type) && ($B.ua.TOUCH_DEVICE || this._options.enableMouseEvent)) {
+    			useCapture = useCapture || false;
     
-                if ( this.hasListener(type, listener, useCapture) ) return this;
+    			if (this.hasListener(type, listener, useCapture)) return this;
     
-                if ( MS_POINTER && !this._isEndEvent ) {
-                    document.addEventListener( this._getCrossType('touchend'), this._touchHandler, false );
-                    document.addEventListener( this._getCrossType('touchcancel'), this._touchHandler, false );
-                    this._isEndEvent = true;
-                }
+    			if (!$B.ua.TOUCH_DEVICE) {
+    				document.addEventListener(this._getCrossType('touchend'), this._touchHandler, false);
+    			} else if ($B.ua.TOUCH_DEVICE && !this._isEndEvent) {
+    				document.addEventListener(this._getCrossType('touchend'), this._touchHandler, false);
+    				document.addEventListener(this._getCrossType('touchcancel'), this._touchHandler, false);
+    				this._isEndEvent = true;
+    			}
     
-                //중첩된 함수를 정의하고 이 함수를 listener 함수 대신 등록한다.
-                var wrapHandler = $B.bind(function (e) {
-                    var crossType = this._originToCrossType( e.type );
+    			//중첩된 함수를 정의하고 이 함수를 listener 함수 대신 등록한다.
+    			var wrapHandler = $B.bind(function (e) {
+    				var crossType = this._originToCrossType(e.type);
     
-                    if ( MS_POINTER ) {
-                        if ( crossType === 'touchstart' || crossType === 'touchmove' ) {
-                            this._addTouch(e);
-                        } else if ( crossType === 'touchend' || crossType === 'touchcancel' ) {
-                            this._removeTouch(e);
-                        }
-                    }
+    				if ($B.ua.TOUCH_DEVICE) {
+    					if (crossType === 'touchstart' || crossType === 'touchmove') {
+    						this._addTouch(e);
+    					} else if (crossType === 'touchend' || crossType === 'touchcancel') {
+    						this._removeTouch(e);
+    					}
+    				}
     
-                    var evt = {
-                        _event: e,			//실제 이벤트 객체
-                        type: crossType,
-                        target: e.target,
-                        currentTarget: e.currentTarget,
-                        relatedTarget: e.relatedTarget,
-                        eventPhase: e.eventPhase,
-                        shiftKey: e.shiftKey, charCode: e.charCode,
-                        altKey: e.altKey,
-                        ctrlKey: e.ctrlKey,
-                        //이벤트 관리 함수
-                        stopPropagation: function () { if (this._event) this._event.stopPropagation(); },
-                        preventDefault: function () { if (this._event) this._event.preventDefault(); },
-                        touches: this._getTouches( crossType, e )
-                    };
+    				var evt = {
+    					_event: e,			//실제 이벤트 객체
+    					type: crossType,
+    					target: e.target,
+    					currentTarget: e.currentTarget,
+    					relatedTarget: e.relatedTarget,
+    					eventPhase: e.eventPhase,
+    					shiftKey: e.shiftKey,
+    					charCode: e.charCode,
+    					altKey: e.altKey,
+    					ctrlKey: e.ctrlKey,
+    					//이벤트 관리 함수
+    					stopPropagation: function () { if (this._event) this._event.stopPropagation(); },
+    					preventDefault: function () { if (this._event) this._event.preventDefault(); },
+    					touches: this._getTouches(crossType, e)
+    				};
     
-                    this.dispatch( evt.type, evt );
-                }, this);
+    				this.dispatch(evt.type, evt);
+    			}, this);
     
-                var evtData = {
-                    useCapture: this._getEventOption( useCapture ),
-                    wrapHandler: wrapHandler
-                };
+    			var evtData = {
+    				useCapture: this._getEventOption(useCapture),
+    				wrapHandler: wrapHandler
+    			};
     
-                $B.Class.prototype.addListener.call( this, type, listener, evtData );
-                this._target.addEventListener( this._getCrossType(type), wrapHandler, evtData.useCapture );
-            }
-            return this;
-        },
+    			$B.Class.prototype.addListener.call(this, type, listener, evtData);
+    			this._target.addEventListener(this._getCrossType(type), wrapHandler, evtData.useCapture);
+    		}
+    		return this;
+    	},
     
-        /**
-         * 이벤트 삭제, type만 입력하면 해당 타입과 일치하는 이벤트 모두 삭제, type listener모두 설정하지 않으면 대상의 모든 이벤트 삭제
-         * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
-         * @param	{Function}	listener		event listener
-         * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 확인 후 삭제
-         * @return	{TouchEvent}
-         */
-        removeListener: function ( type, listener, useCapture ) {
-            var events = this.__eventPool__[type],
-                crossType = this._getCrossType( type ),
-                evtLength = 0, i;
+    	/**
+    	 * 이벤트 삭제, type만 입력하면 해당 타입과 일치하는 이벤트 모두 삭제, type listener모두 설정하지 않으면 대상의 모든 이벤트 삭제
+    	 * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
+    	 * @param	{Function}	listener		event listener
+    	 * @param	{Boolean|Object}	useCapture || options	capture, passive 등을 확인 후 삭제
+    	 * @return	{TouchEvent}
+    	 */
+    	removeListener: function (type, listener, useCapture) {
+    		var events = this.__eventPool__[type],
+    			crossType = this._getCrossType(type),
+    			evtLength = 0, i;
     
-            if ( events ) {
-                evtLength = events.length;
+    		if (events) {
+    			evtLength = events.length;
     
-                if ( $B.isFunction(listener) ) {
-                    for ( i = 0; i < evtLength; ++i ) {
-                        var eData = events[i];
-                        if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, this._getEventOption(useCapture)) ) {
-                            this._target.removeEventListener( crossType, eData.options.wrapHandler, eData.options.useCapture );
-                            events.splice( $B.array.indexOf(events, events[i]), 1 );
-                        }
-                    }
-                } else {
-                    for ( i = 0; i < evtLength; ++i ) {
-                        this._target.removeEventListener( crossType, events[i].options.wrapHandler, events[i].options.useCapture );
-                    }
+    			if ($B.isFunction(listener)) {
+    				for (i = 0; i < evtLength; ++i) {
+    					var eData = events[i];
+    					if (listener === eData.listener && $B.isEqual(eData.options.useCapture, this._getEventOption(useCapture))) {
+    						this._target.removeEventListener(crossType, eData.options.wrapHandler, eData.options.useCapture);
+    						events.splice($B.array.indexOf(events, events[i]), 1);
+    					}
+    				}
+    			} else {
+    				for (i = 0; i < evtLength; ++i) {
+    					this._target.removeEventListener(crossType, events[i].options.wrapHandler, events[i].options.useCapture);
+    				}
     
-                    delete this.__eventPool__[type];
-                }
-            } else {
-                for ( var key in this.__eventPool__ ) {
-                    events = this.__eventPool__[key];
-                    crossType = this._getCrossType( key );
-                    evtLength = events.length;
+    				delete this.__eventPool__[type];
+    			}
+    		} else {
+    			for (var key in this.__eventPool__) {
+    				events = this.__eventPool__[key];
+    				crossType = this._getCrossType(key);
+    				evtLength = events.length;
     
-                    for ( i = 0; i < evtLength; ++i ) {
-                        this._target.removeEventListener( crossType, events[i].options.wrapHandler, events[i].options.useCapture );
-                    }
-                }
-                this.__eventPool__ = {};
-            }
-            return this;
-        },
+    				for (i = 0; i < evtLength; ++i) {
+    					this._target.removeEventListener(crossType, events[i].options.wrapHandler, events[i].options.useCapture);
+    				}
+    			}
+    			this.__eventPool__ = {};
+    		}
+    		return this;
+    	},
     
-        /**
-         * 이벤트 등록여부 반환
-         * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
-         * @param	{Function}	listener		event listener
-         * @param	{Boolean}	useCapture	useCapture || options	capture, passive 등의 설정 여부 확인
-         * @return	{Boolean}
-         */
-        hasListener: function ( type, listener, useCapture ) {
-            var result = false,
-                events = this.__eventPool__[type];
+    	/**
+    	 * 이벤트 등록여부 반환
+    	 * @param	{String}	type		touchstart, touchmove, touchend, touchcancel
+    	 * @param	{Function}	listener		event listener
+    	 * @param	{Boolean}	useCapture	useCapture || options	capture, passive 등의 설정 여부 확인
+    	 * @return	{Boolean}
+    	 */
+    	hasListener: function (type, listener, useCapture) {
+    		var result = false,
+    			events = this.__eventPool__[type];
     
-            if ( events ) {
-                if ( $B.isFunction(listener) ) {
-                    var evtLength = events.length, i;
+    		if (events) {
+    			if ($B.isFunction(listener)) {
+    				var evtLength = events.length, i;
     
-                    if ( !$B.isEmpty(useCapture) ) {
-                        for ( i = 0; i < evtLength; ++i ) {
-                            var eData = events[i];
-                            if ( listener === eData.listener && $B.isEqual(eData.options.useCapture, this._getEventOption(useCapture)) ) {
-                                result = true;
-                                break;
-                            }
-                        }
-                    } else {
-                        for ( i = 0; i < evtLength; ++i ) {
-                            if ( listener === events[i].listener ) {
-                                result = true;
-                                break;
-                            }
-                        }
-                    }
-                } else {
-                    result = true;
-                }
-            }
+    				if (!$B.isEmpty(useCapture)) {
+    					for (i = 0; i < evtLength; ++i) {
+    						var eData = events[i];
+    						if (listener === eData.listener && $B.isEqual(eData.options.useCapture, this._getEventOption(useCapture))) {
+    							result = true;
+    							break;
+    						}
+    					}
+    				} else {
+    					for (i = 0; i < evtLength; ++i) {
+    						if (listener === events[i].listener) {
+    							result = true;
+    							break;
+    						}
+    					}
+    				}
+    			} else {
+    				result = true;
+    			}
+    		}
     
-            return result;
-        },
+    		return result;
+    	},
     
-        /**
-         * 등록된 모든 이벤트 삭제
-         * @return	{TouchEvent}
-         */
-        clear: function () {
-            this.removeListener();
+    	/**
+    	 * 등록된 모든 이벤트 삭제
+    	 * @return	{TouchEvent}
+    	 */
+    	clear: function () {
+    		this.removeListener();
     
-            if ( MS_POINTER && this._isEndEvent ) {
-                document.removeEventListener( this._getCrossType('touchend'), this._touchHandler, false );
-                document.removeEventListener( this._getCrossType('touchcancel'), this._touchHandler, false );
-                this._isEndEvent = false;
-            }
+    		if (!$B.ua.TOUCH_DEVICE && this._options.enableMouseEvent) {
+    			document.removeEventListener(this._getCrossType('touchcancel'), this._touchHandler, false);
+    		} else if ($B.ua.TOUCH_DEVICE && this._isEndEvent) {
+    			document.removeEventListener(this._getCrossType('touchend'), this._touchHandler, false);
+    			document.removeEventListener(this._getCrossType('touchcancel'), this._touchHandler, false);
+    			this._isEndEvent = false;
+    		}
     
-            return this;
-        },
+    		return this;
+    	},
     
-        // ===============	Private Methods =============== //
+    	// ===============	Private Methods =============== //
     
-        _setEvents: function () {
-            this._touchHandler = $B.bind(function (e) {
-                this._removeTouch(e);
-            }, this);
-        },
+    	_setEvents: function () {
+    		this._touchHandler = $B.bind(function (e) {
+    			this._removeTouch(e);
+    		}, this);
+    	},
     
-        _addTouch: function ( event ) {
-            //if ( event.pointerType == 'mouse' || event.pointerType == 4 ) return;
+    	_addTouch: function (event) {
+    		//if ( event.pointerType == 'mouse' || event.pointerType == 4 ) return;
     
-            this._touches[event.pointerId] = {
-                target: event.target,
-                clientX: event.clientX,
-                clientY: event.clientY,
-                pageX: event.pageX,
-                pageY: event.pageY,
-                screenX: event.screenX,
-                screenY: event.screenY,
-                pointerType: this._getPointerType( event ) //IE only
-            };
-        },
+    		this._touches[event.pointerId] = {
+    			target: event.target,
+    			clientX: event.clientX,
+    			clientY: event.clientY,
+    			pageX: event.pageX,
+    			pageY: event.pageY,
+    			screenX: event.screenX,
+    			screenY: event.screenY,
+    			pointerType: this._getPointerType(event) //IE only
+    		};
+    	},
     
-        _removeTouch: function ( event ) {
-            delete this._touches[event.pointerId];
-        },
+    	_removeTouch: function (event) {
+    		delete this._touches[event.pointerId];
+    	},
     
-        _getPointerType: function ( event ) {
-            var result = 'touch', pointerType = event.pointerType;
+    	_getPointerType: function (event) {
+    		var result = 'touch',
+    			pointerType = event.pointerType;
     
-            if ( typeof pointerType === 'string' ) {
-                result = pointerType;
-            } else if ( typeof pointerType === 'number' && pointerType > -1 && pointerType < 5 ) {
-                result = POINTER_TYPES[pointerType];
-            }
+    		if (typeof pointerType === 'string') {
+    			result = pointerType;
+    		} else if (typeof pointerType === 'number' && pointerType > -1 && pointerType < 5) {
+    			result = this.POINTER_TYPES[pointerType];
+    		}
     
-            return result;
-        },
+    		return result;
+    	},
     
-        //크로스브라우징 TouchEvent Touches 반환
-        _getTouches: function ( type, event ) {
-            var touches = [];
+    	//크로스브라우징 TouchEvent Touches 반환
+    	_getTouches: function (type, event) {
+    		var touches = [];
     
-            if ( MS_POINTER ) {
-                for ( var n in this._touches ) {
-                    touches.push( this._touches[n] );
-                }
-            } else {
-                touches = event.touches;
-            }
+    		if (MS_POINTER) {
+    			for (var n in this._touches) {
+    				touches.push(this._touches[n]);
+    			}
+    		} else {
+    			if ($B.ua.TOUCH_DEVICE) {
+    				touches = event.touches;
+    			} else {
+    				touches.push({
+    					target: event.target,
+    					clientX: event.clientX,
+    					clientY: event.clientY,
+    					pageX: event.pageX,
+    					pageY: event.pageY,
+    					screenX: event.screenX,
+    					screenY: event.screenY
+    				});
+    			}
+    		}
     
-            return touches;
-        },
+    		return touches;
+    	},
     
-        //크로스브라우징 이벤트 타입 반환
-        _getCrossType: function ( type ) {
-            var crossType = CrossTouchEvent[type];
-            return crossType || type;
-        },
+    	//크로스브라우징 이벤트 타입 반환
+    	_getCrossType: function (type) {
+    		var crossType = '';
     
-        //origin event type to cross event type
-        _originToCrossType: function ( type ) {
-            if ( /pointerdown/i.test(type) ) {
-                type = 'touchstart';
-            } else if ( /pointermove/i.test(type) ) {
-                type = 'touchmove';
-            } else if ( /pointerup/i.test(type) ) {
-                type = 'touchend';
-            } else if ( /pointercancel/i.test(type) ) {
-                type = 'touchcancel';
-            }
+    		if ($B.ua.TOUCH_DEVICE) {
+    			crossType = CrossTouchEvent[type];
+    		} else {
+    			if (/touchstart/i.test(type)) {
+    				crossType = 'mousedown';
+    			} else if (/touchmove/i.test(type)) {
+    				crossType = 'mousehmove';
+    			} else if (/touchend/i.test(type)) {
+    				crossType = 'mouseup';
+    			}
+    		}
     
-            return type;
-        },
+    		return crossType || type;
+    	},
     
-        _getEventOption: function ( useCapture ) {
-            var result;
+    	//origin event type to cross event type
+    	_originToCrossType: function (type) {
+    		if ($B.ua.TOUCH_DEVICE) {
+    			if (/pointerdown/i.test(type)) {
+    				type = 'touchstart';
+    			} else if (/pointermove/i.test(type)) {
+    				type = 'touchmove';
+    			} else if (/pointerup/i.test(type)) {
+    				type = 'touchend';
+    			} else if (/pointercancel/i.test(type)) {
+    				type = 'touchcancel';
+    			}
+    		} else {
+    			if (/mousedown/i.test(type)) {
+    				type = 'touchstart';
+    			} else if (/mousehmove/i.test(type)) {
+    				type = 'touchmove';
+    			} else if (/mouseup/i.test(type)) {
+    				type = 'touchend';
+    			}
+    		}
     
-            if ( $B.isObject(useCapture) ) {
-                if ( $B.event.passiveSupported ) {
+    		return type;
+    	},
+    
+    	_getEventOption: function (useCapture) {
+    		var result;
+    
+    		if ($B.isObject(useCapture)) {
+    			if ($B.event.passiveSupported) {
     				result = useCapture;
-                } else {
-                    if ( $B.isBoolean(useCapture.passive) ) {
+    			} else {
+    				if ($B.isBoolean(useCapture.passive)) {
     					result = useCapture.passive;
-                    }
-                }
-            } else if ( $B.isBoolean(useCapture) ) {
+    				}
+    			}
+    		} else if ($B.isBoolean(useCapture)) {
     			result = useCapture;
-            }
+    		}
     
-            return result;
-        }
+    		return result;
+    	}
     }, '$B.event.TouchEvent');
 
 
@@ -5967,141 +6014,141 @@
      * @constructor
      * @param	{Element, Selector, jQuery}	target		터치이벤트 발생시킬 대상, 내장함수 querySelector() 로 구현되어졌다, 단일개체. http://www.w3.org/TR/css3-selectors/#link
      * @param   {Object}    options
+     *      - {Boolean}	enableMouseEvent	터치 이벤트가 지원하지 않는 환경에서 mouse이벤트를 사용할지 여부
      *      - {Boolean} preventDefault  safari v10 에서 세로축 touchstart를 막고 싶을때만 설정한다. (v1.1.2 에서 해결되어 해당 옵션 삭제)
      */
     ixBand.event.GestureAxis = $B.Class.extend({
-        initialize: function ( target, options ) {
-            this._target = $B( target ).element();
-            this._options = options || {};
-            this._aType = ( this._options.aType )? this._options.aType : 'auto';
-            //safari v10 에서 세로축 touchstart를 막고 싶을때만 사용한다.
-            //this._preventDefault = this._options.preventDefault || false;
-            this._startX = 0;
-            this._startY = 0;
-            this._moveCount = 0;
-            this._setEvents();
-            return this;
-        },
+    	initialize: function (target, options) {
+    		this._target = $B(target).element();
+    		this._options = options || {};
+    		this._aType = (this._options.aType) ? this._options.aType : 'auto';
+    		//safari v10 에서 세로축 touchstart를 막고 싶을때만 사용한다.
+    		//this._preventDefault = this._options.preventDefault || false;
+    		this._startX = 0;
+    		this._startY = 0;
+    		this._moveCount = 0;
+    		this._setEvents();
+    		return this;
+    	},
     
-        // ===============	Public Methods	=============== //
+    	// ===============	Public Methods	=============== //
     
-        enable: function () {
-            this._targetTouch.addListener( 'touchstart', this._axisHandler );
-            return this;
-        },
-        //비활성화
-        disable: function () {
-            this._targetTouch.removeListener();
-            this._winTouch.removeListener();
-            return this;
-        },
-        //이벤트 및 기본설정 삭제
-        clear: function () {
-            this._targetTouch.clear();
-            this._winTouch.clear();
-            return this;
-        },
+    	enable: function () {
+    		this._targetTouch.addListener('touchstart', this._axisHandler);
+    		return this;
+    	},
+    	//비활성화
+    	disable: function () {
+    		this._targetTouch.removeListener();
+    		this._winTouch.removeListener();
+    		return this;
+    	},
+    	//이벤트 및 기본설정 삭제
+    	clear: function () {
+    		this._targetTouch.clear();
+    		this._winTouch.clear();
+    		return this;
+    	},
     
-        // ===============	Private Methods	=============== //
+    	// ===============	Private Methods	=============== //
     
-        _setEvents: function () {
-            this._targetTouch = new $B.event.TouchEvent( this._target );
-            this._winTouch = new $B.event.TouchEvent( window );
+    	_setEvents: function () {
+    		this._targetTouch = new $B.event.TouchEvent(this._target, { enableMouseEvent: this._options.enableMouseEvent });
+    		this._winTouch = new $B.event.TouchEvent(window, { enableMouseEvent: this._options.enableMouseEvent });
     
-            //Safari e.preventDefault() bugfix
-            if ( $B.ua.SAFARI && parseFloat($B.ua.VERSION) > 9 ) {
-    			this._winTouch.addListener( 'touchmove', function () {}, {passive: false} );
-            }
+    		//Safari e.preventDefault() bugfix
+    		if ($B.ua.SAFARI && parseFloat($B.ua.VERSION) > 9) {
+    			this._winTouch.addListener('touchmove', function () { }, { passive: false });
+    		}
     
-            this._axisHandler = $B.bind( function (e) {
-                var evt, pageX = this._startX, pageY = this._startY;
+    		this._axisHandler = $B.bind(function (e) {
+    			var evt, pageX = this._startX, pageY = this._startY;
     
-                if ( e.touches.length > 0 ) {
-                    var touch = e.touches[0];
-                    pageX = touch.pageX;
-                    pageY = touch.pageY;
-                }
+    			if (e.touches.length > 0) {
+    				var touch = e.touches[0];
+    				pageX = touch.pageX;
+    				pageY = touch.pageY;
+    			}
     
-                switch ( e.type ) {
-                    case 'touchstart':
-                        e.stopPropagation();
-                        //if ( this._preventDefault ) e.preventDefault();
+    			switch (e.type) {
+    				case 'touchstart':
+    					e.stopPropagation();
     
-                        this._moveCount = 0;
-                        this._startX = pageX;
-                        this._startY = pageY;
+    					this._moveCount = 0;
+    					this._startX = pageX;
+    					this._startY = pageY;
     
-                        this._winTouch.addListener( 'touchmove', this._axisHandler, {passive: false} );
-                        this._winTouch.addListener( 'touchend', this._axisHandler );
-                        this._targetTouch.addListener( 'touchcancel', this._axisHandler );
-                        break;
-                    case 'touchmove':
-                        var axis = this._getAxisType( this._startX, this._startY, pageX, pageY );
-                        evt = {target: e.target, currentTarget: this._target, axis: axis, direction: '', pageX: pageX, pageY: pageY};
+    					this._winTouch.addListener('touchmove', this._axisHandler, { passive: false });
+    					this._winTouch.addListener('touchend', this._axisHandler);
+    					this._targetTouch.addListener('touchcancel', this._axisHandler);
+    					break;
+    				case 'touchmove':
+    					var axis = this._getAxisType(this._startX, this._startY, pageX, pageY);
+    					evt = { target: e.target, currentTarget: this._target, axis: axis, direction: '', pageX: pageX, pageY: pageY };
     
-                        this._moveCount++;
+    					this._moveCount++;
     
-                        if ( MS_POINTER && axis == 'none' && this._moveCount < 3  ) {
-                            break;
-                        } else {
-                            if ( this._aType == 'auto' ) {
-                                if ( axis != 'none' ) {
-                                    e.preventDefault();
-                                    evt.direction = this._getDirectionType( axis, this._startX, this._startY, pageX, pageY );
-                                    this.dispatch( 'axis', evt );
-                                }
-                            } else if ( this._aType == axis ) {
-                                e.preventDefault();
-                                evt.direction = this._getDirectionType( axis, this._startX, this._startY, pageX, pageY );
-                                this.dispatch( 'axis', evt );
-                            }
-                        }
-                    case 'touchend':
-                    case 'touchcancel':
-    					this._winTouch.removeListener( 'touchmove', this._axisHandler, {passive: false} );
-    					this._winTouch.removeListener( 'touchend' );
-    					this._targetTouch.removeListener( 'touchcancel' );
-                        break;
-                }
-            }, this);
+    					if (MS_POINTER && axis === 'none' && this._moveCount < 3) {
+    						break;
+    					} else {
+    						if (this._aType === 'auto') {
+    							if (axis !== 'none') {
+    								e.preventDefault();
+    								evt.direction = this._getDirectionType(axis, this._startX, this._startY, pageX, pageY);
+    								this.dispatch('axis', evt);
+    							}
+    						} else if (this._aType === axis) {
+    							e.preventDefault();
+    							evt.direction = this._getDirectionType(axis, this._startX, this._startY, pageX, pageY);
+    							this.dispatch('axis', evt);
+    						}
+    					}
+    				case 'touchend':
+    				case 'touchcancel':
+    					this._winTouch.removeListener('touchmove', this._axisHandler, { passive: false });
+    					this._winTouch.removeListener('touchend');
+    					this._targetTouch.removeListener('touchcancel');
+    					break;
+    			}
+    		}, this);
     
-            this.enable();
-        },
+    		this.enable();
+    	},
     
-        //제스츄어 방향축 반환 (vertical, horizontal)
-        _getAxisType: function ( startX, startY, endX, endY ) {
-            var gapH = Math.max( startX, endX ) - Math.min( startX, endX ),
-                gapV = Math.max( startY, endY ) - Math.min( startY, endY );
+    	//제스츄어 방향축 반환 (vertical, horizontal)
+    	_getAxisType: function (startX, startY, endX, endY) {
+    		var gapH = Math.max(startX, endX) - Math.min(startX, endX),
+    			gapV = Math.max(startY, endY) - Math.min(startY, endY);
     
-            if ( gapH > gapV ) {
-                return 'horizontal';
-            } else if ( gapH < gapV ) {
-                return 'vertical';
-            } else {
-                return 'none';
-            }
-        },
+    		if (gapH > gapV) {
+    			return 'horizontal';
+    		} else if (gapH < gapV) {
+    			return 'vertical';
+    		} else {
+    			return 'none';
+    		}
+    	},
     
-        //제스츄어 방향 반환 (left, right, top, bottom, none)
-        _getDirectionType: function ( axis, startX, startY, endX, endY ) {
-            var result = 'none';
+    	//제스츄어 방향 반환 (left, right, top, bottom, none)
+    	_getDirectionType: function (axis, startX, startY, endX, endY) {
+    		var result = 'none';
     
-            if ( axis == 'horizontal' ) {
-                if ( startX > endX ) {
-                    result = 'left';
-                } else if ( startX < endX ) {
-                    result = 'right';
-                }
-            } else {
-                if ( startY > endY ) {
-                    result = 'top';
-                } else if ( startY < endY ) {
-                    result = 'bottom';
-                }
-            }
+    		if (axis === 'horizontal') {
+    			if (startX > endX) {
+    				result = 'left';
+    			} else if (startX < endX) {
+    				result = 'right';
+    			}
+    		} else {
+    			if (startY > endY) {
+    				result = 'top';
+    			} else if (startY < endY) {
+    				result = 'bottom';
+    			}
+    		}
     
-            return result;
-        }
+    		return result;
+    	}
     
     }, '$B.event.GestureAxis');
 
@@ -7270,260 +7317,260 @@
      * 스마트폰에서 대상영역을 Swipe시킬때 사용 (Windows8.* 터치 디바이스 지원)
      * onSwipe, onMove Event Property : type, target, axis:(vertical, horizontal), swipe:('left', 'right', 'up', 'down', 'none'), moveX, moveY, growX, growY, duration, speed<br>
      * onAxis Event Property : type, target, axis:(vertical, horizontal), pageX, pageY, direction:(left, right, top, bottom, none)
-     * TODO:// Mobile Safari v10~ 에서 "touchmove" e.preventDefault() 동작 하지 않는 문제
      * @class	{Swipe}
      * @constructor
-     * @param	{Element, Selector, jQuery}	target		터치이벤트 발생시킬 대상, 내장함수 querySelector() 로 구현되어졌다, 단일개체. http://www.w3.org/TR/css3-selectors/#link
+     * @param	{Element, Selector, jQuery}	target		터치 이벤트 발생시킬 대상, 내장함수 querySelector() 로 구현되어졌다, 단일개체. http://www.w3.org/TR/css3-selectors/#link
      * @param	{Object}	options
-     *      - {String}	axis		axis : vertical, horizontal, auto, (기본값 = 'horizontal')
-     *      - {Boolean} preventDefault  safari v10 에서 세로축 touchstart를 막고 싶을때만 설정한다. (v1.1.2 에서 해결되어 해당 옵션 삭제)
+     *      - {String}	axis				axis : vertical, horizontal, auto, (기본값 = 'horizontal')
+     *      - {Boolean}	enableMouseEvent	터치 이벤트가 지원하지 않는 환경에서 mouse이벤트를 사용할지 여부 (기본값 = false)
+     *      - {Boolean} preventDefault  	safari v10 에서 세로축 touchstart를 막고 싶을때만 설정한다. (v1.1.2 에서 해결되어 해당 옵션 삭제)
      */
     ixBand.event.Swipe = $B.Class.extend({
-        SWIPE_BASE_W: 40,//swipe 판별 기준 px
-        SWIPE_BASE_H: 40,
+    	SWIPE_BASE_W: 40,
+    	SWIPE_BASE_H: 40,
     
-        _sensitiveH: 1,
-        _sensitiveV: 1,
-        _enable: true,
+    	_sensitiveH: 1,
+    	_sensitiveV: 1,
+    	_enable: true,
     
-        initialize: function ( target, options ) {
-            this._target = $B( target ).element();
-            this._options = options || {};
-            this._aType = this._options.axis || 'horizontal';
-            this._startX = 0;
-            this._startY = 0;
-            this._moveX = 0;
-            this._moveY = 0;
-            this._growX = 0;
-            this._growY = 0;
-            this._offsetBeginX = 0;
-            this._offsetBeginY = 0;
-            this._pageX = 0;
-            this._pageY = 0;
-            this._speed = 0;
-            this._startTime = 0;
-            this._isTouchMove = false;
-            //Swipe 기준 사이즈 보정 설정
-            this._swipeWidth = this._swipeSizeCalibration( this.SWIPE_BASE_W, this._sensitiveH );
-            this._swipeHeight = this._swipeSizeCalibration( this.SWIPE_BASE_H, this._sensitiveV );
-            this._axis = null;
-            this._swipe = null;
+    	initialize: function (target, options) {
+    		this._target = $B(target).element();
+    		this._options = options || {};
+    		this._aType = this._options.axis || 'horizontal';
+    		this._startX = 0;
+    		this._startY = 0;
+    		this._moveX = 0;
+    		this._moveY = 0;
+    		this._growX = 0;
+    		this._growY = 0;
+    		this._offsetBeginX = 0;
+    		this._offsetBeginY = 0;
+    		this._pageX = 0;
+    		this._pageY = 0;
+    		this._speed = 0;
+    		this._startTime = 0;
+    		this._isTouchMove = false;
+    		//Swipe 기준 사이즈 보정 설정
+    		this._swipeWidth = this._swipeSizeCalibration(this.SWIPE_BASE_W, this._sensitiveH);
+    		this._swipeHeight = this._swipeSizeCalibration(this.SWIPE_BASE_H, this._sensitiveV);
+    		this._axis = null;
+    		this._swipe = null;
     
-            this._tAction = ( this._aType == 'auto' )? 'none' : ( this._aType == 'horizontal' )? 'pan-y' : 'pan-x';
-            this._setTouchAction( this._tAction );
-            this._setEvents();
-            return this;
-        },
+    		this._tAction = this._aType === 'auto' ? 'none' : (this._aType === 'horizontal' ? 'pan-y' : 'pan-x');
+    		this._setTouchAction(this._tAction);
+    		this._setEvents();
+    		return this;
+    	},
     
-        // ===============	Public Methods =============== //
-        /**
-         * 민감도 설정, 화면의 가로사이즈 기준, 기본값 1.
-         * 민감도를 Number로 지정, 1보다 커질수록 둔감해지고 작아질수록 민감해진다, h만 설정하면 가로축 세로축의 민감도가 같게 설정된다.
-         * @param	{Number}	h	가로축 민감도 설정
-         * @param	{Number}	v	세로축 민감도 설정
-         * @return	{Swipe}
-         */
-        //horizontal, vertical 감도 별도 설정
-        sensitivity: function ( h, v ) {
-            var sv = v || h;
-            if ( !sv ) return this;
-            this._sensitiveH = h;
-            this._sensitiveV = v || h;
-            this._swipeWidth = this._swipeSizeCalibration( this.SWIPE_BASE_W, h );
-            this._swipeHeight = this._swipeSizeCalibration( this.SWIPE_BASE_H, sv );
-            return this;
-        },
-        /**
-         * Swipe 동작 허용 설정
-         * @return	{Swipe}
-         */
-        enable: function () {
-            this._gAxis.enable();
-            this._enable = true;
-            this._setTouchAction( this._tAction );
-            return this;
-        },
-        /**
-         * Swipe 동작 비허용 설정
-         * @return	{Swipe}
-         */
-        disable: function () {
-            this._gAxis.disable();
-            this._enable = false;
-            this._setTouchAction( 'auto' );
-            return this;
-        },
-        /**
-         * 현재 디바이스 해상도에 맞게 민감도 보정이된 swipeWidth 기준값을 반환.
-         * 기본 swipeWidth값은 '40'
-         * @return	{Number}	px기준으론 반환.
-         */
-        swipeWidth: function () {
-            return this._swipeWidth;
-        },
-        /**
-         * 현재 디바이스 해상도에 맞게 민감도 보정이된 swipeHeight 기준값을 반환.
-         * 기본 swipeHeight값은 '40'
-         * @return	{Number}	px기준으론 반환.
-         */
-        swipeHeight: function () {
-            return this._swipeHeight;
-        },
-        //이벤트 및 기본설정 삭제
-        clear: function () {
-            this._gAxis.clear();
-            this._winTouchEvent.clear();
-            this._setTouchAction( 'auto' );
-            return this;
-        },
+    	// ===============	Public Methods =============== //
+    	/**
+    	 * 민감도 설정, 화면의 가로사이즈 기준, 기본값 1.
+    	 * 민감도를 Number로 지정, 1보다 커질수록 둔감해지고 작아질수록 민감해진다, h만 설정하면 가로축 세로축의 민감도가 같게 설정된다.
+    	 * @param	{Number}	h	가로축 민감도 설정
+    	 * @param	{Number}	v	세로축 민감도 설정
+    	 * @return	{Swipe}
+    	 */
+    	//horizontal, vertical 감도 별도 설정
+    	sensitivity: function (h, v) {
+    		var sv = v || h;
+    		if (!sv) return this;
+    		this._sensitiveH = h;
+    		this._sensitiveV = v || h;
+    		this._swipeWidth = this._swipeSizeCalibration(this.SWIPE_BASE_W, h);
+    		this._swipeHeight = this._swipeSizeCalibration(this.SWIPE_BASE_H, sv);
+    		return this;
+    	},
+    	/**
+    	 * Swipe 동작 허용 설정
+    	 * @return	{Swipe}
+    	 */
+    	enable: function () {
+    		this._gAxis.enable();
+    		this._enable = true;
+    		this._setTouchAction(this._tAction);
+    		return this;
+    	},
+    	/**
+    	 * Swipe 동작 비허용 설정
+    	 * @return	{Swipe}
+    	 */
+    	disable: function () {
+    		this._gAxis.disable();
+    		this._enable = false;
+    		this._setTouchAction('auto');
+    		return this;
+    	},
+    	/**
+    	 * 현재 디바이스 해상도에 맞게 민감도 보정이된 swipeWidth 기준값을 반환.
+    	 * 기본 swipeWidth값은 '40'
+    	 * @return	{Number}	px기준으론 반환.
+    	 */
+    	swipeWidth: function () {
+    		return this._swipeWidth;
+    	},
+    	/**
+    	 * 현재 디바이스 해상도에 맞게 민감도 보정이된 swipeHeight 기준값을 반환.
+    	 * 기본 swipeHeight값은 '40'
+    	 * @return	{Number}	px기준으론 반환.
+    	 */
+    	swipeHeight: function () {
+    		return this._swipeHeight;
+    	},
+    	//이벤트 및 기본설정 삭제
+    	clear: function () {
+    		this._gAxis.clear();
+    		this._winTouchEvent.clear();
+    		this._setTouchAction('auto');
+    		return this;
+    	},
     
-        // ===============	Private Methods =============== //
+    	// ===============	Private Methods =============== //
     
-        _setEvents: function () {
-            this._winTouchEvent = new $B.event.TouchEvent( window );
+    	_setEvents: function () {
+    		this._winTouchEvent = new $B.event.TouchEvent(window, { enableMouseEvent: this._options.enableMouseEvent });
     
-            //Axis을 이용하여 제스추어 방향 알아내기
-            this._gAxis = new $B.event.GestureAxis( this._target, {
-                aType: this._aType
-            });
-            this._gAxis.addListener( 'axis', $B.bind(function (e) {
-                if ( !this._enable ) return this._winTouchEvent.removeListener();
-                this.dispatch( 'axis', e );
+    		//Axis을 이용하여 제스추어 방향 알아내기
+    		this._gAxis = new $B.event.GestureAxis(this._target, {
+    			aType: this._aType
+    		});
+    		this._gAxis.addListener('axis', $B.bind(function (e) {
+    			if (!this._enable) return this._winTouchEvent.removeListener();
+    			this.dispatch('axis', e);
     
-                this._axis = e.axis;
-                this._speed = this._getSpeed( this._axis, e.pageX, e.pageY );
-                this._startX = e.pageX;
-                this._startY = e.pageY;
-                this._pageX = e.pageX;
-                this._pageY = e.pageY;
-                this._moveX = 0;
-                this._moveY = 0;
-                this._growX = 0;
-                this._growY = 0;
-                this._offsetBeginX = e.pageX;
-                this._offsetBeginY = e.pageY;
-                this._startTime = new Date().getTime();
+    			this._axis = e.axis;
+    			this._speed = this._getSpeed(this._axis, e.pageX, e.pageY);
+    			this._startX = e.pageX;
+    			this._startY = e.pageY;
+    			this._pageX = e.pageX;
+    			this._pageY = e.pageY;
+    			this._moveX = 0;
+    			this._moveY = 0;
+    			this._growX = 0;
+    			this._growY = 0;
+    			this._offsetBeginX = e.pageX;
+    			this._offsetBeginY = e.pageY;
+    			this._startTime = new Date().getTime();
     
-                this._addTouchEvent();
-            }, this));
+    			this._addTouchEvent();
+    		}, this));
     
-            this._touchHandler = $B.bind( function (e) {
-                if ( !this._enable ) return this._winTouchEvent.removeListener();
+    		this._touchHandler = $B.bind(function (e) {
+    			if (!this._enable) return this._winTouchEvent.removeListener();
     
-                switch ( e.type ) {
-                    case 'touchmove':
-                        e.preventDefault();
+    			switch (e.type) {
+    				case 'touchmove':
+    					e.preventDefault();
     
-                        var pageX = this._startX, pageY = this._startY;
+    					var pageX = this._startX,
+    						pageY = this._startY;
     
-                        if ( e.touches.length > 0 ) {
-                            var touch = e.touches[0];
-                            pageX = touch.pageX;
-                            pageY = touch.pageY;
-                        }
+    					if (e.touches.length > 0) {
+    						var touch = e.touches[0];
+    						pageX = touch.pageX;
+    						pageY = touch.pageY;
+    					}
     
-                        this._moveX = pageX - this._startX;
-                        this._moveY = pageY - this._startY;
-                        this._growX = pageX - this._offsetBeginX;
-                        this._growY = pageY - this._offsetBeginY;
-                        this._speed = this._getSpeed( this._axis, pageX, pageY );
-                        this._pageX = pageX;
-                        this._pageY = pageY;
-                        this._offsetBeginX = pageX;
-                        this._offsetBeginY = pageY;
-                        this._isTouchMove = true;
+    					this._moveX = pageX - this._startX;
+    					this._moveY = pageY - this._startY;
+    					this._growX = pageX - this._offsetBeginX;
+    					this._growY = pageY - this._offsetBeginY;
+    					this._speed = this._getSpeed(this._axis, pageX, pageY);
+    					this._pageX = pageX;
+    					this._pageY = pageY;
+    					this._offsetBeginX = pageX;
+    					this._offsetBeginY = pageY;
+    					this._isTouchMove = true;
     
-                        this.dispatch( 'move', {target: e.target, currentTarget: this._target, axis: this._axis, swipe: this._swipe, pageX: this._pageX, pageY: this._pageY, growX: this._growX, growY: this._growY, moveX: this._moveX, moveY: this._moveY, duration: 0, speed: this._speed} );
-                        break;
-                    case 'touchcancel':
-                    case 'touchend':
-                        if ( this._isTouchMove ) {
-                            var duration = new Date().getTime() - this._startTime;
-                            this._swipe = this._getSwipType( this._axis, this._moveX, this._moveY, duration );
-                        } else {
-                            this._swipe = 'none';
-                        }
+    					this.dispatch('move', { target: e.target, currentTarget: this._target, axis: this._axis, swipe: this._swipe, pageX: this._pageX, pageY: this._pageY, growX: this._growX, growY: this._growY, moveX: this._moveX, moveY: this._moveY, duration: 0, speed: this._speed });
+    					break;
+    				case 'touchcancel':
+    				case 'touchend':
+    					if (this._isTouchMove) {
+    						var duration = new Date().getTime() - this._startTime;
+    						this._swipe = this._getSwipType(this._axis, this._moveX, this._moveY, duration);
+    					} else {
+    						this._swipe = 'none';
+    					}
     
-                        this.dispatch( 'swipe', {target: e.target, currentTarget: this._target, axis: this._axis, swipe: this._swipe, pageX: this._pageX, pageY: this._pageY, growX: this._growX, growY: this._growY, moveX: this._moveX, moveY: this._moveY, duration: duration, speed: this._speed} );
-                        this._isTouchMove = false;
-                        this._winTouchEvent.removeListener();
-                        break;
-                }
-            }, this);
-        },
+    					this.dispatch('swipe', { target: e.target, currentTarget: this._target, axis: this._axis, swipe: this._swipe, pageX: this._pageX, pageY: this._pageY, growX: this._growX, growY: this._growY, moveX: this._moveX, moveY: this._moveY, duration: duration, speed: this._speed });
+    					this._isTouchMove = false;
+    					this._winTouchEvent.removeListener();
+    					break;
+    			}
+    		}, this);
+    	},
     
-        //Swipe 기준 사이즈 보정
-        _swipeSizeCalibration: function ( size, sensitivie ) {
-            return PX_RATIO * size * sensitivie;
-        },
+    	//Swipe 기준 사이즈 보정
+    	_swipeSizeCalibration: function (size, sensitivie) {
+    		return PX_RATIO * size * sensitivie;
+    	},
     
-        //Touch Pointer Event를 이용할때 이벤트전달 설정
-        _setTouchAction: function ( state ) {
-            if ( MS_POINTER ) {
-                this._target.style[TOUCH_ACTION] = state;//none, auto
-                //마우스로 컨트롤시 드래그 방지
+    	//Touch Pointer Event를 이용할때 이벤트전달 설정
+    	_setTouchAction: function (state) {
+    		if (MS_POINTER) {
+    			this._target.style[TOUCH_ACTION] = state;//none, auto
+    			//마우스로 컨트롤시 드래그 방지
     
-                if ( state == 'auto' ) {
-                    this._target.removeEventListener( 'dragstart', this._dragHandlr, false );
-                } else {
-                    this._target.addEventListener( 'dragstart', this._dragHandlr, false );
-                    //this._target.addEventListener( 'selectstart', function (e) {e.preventDefault();}, false );
-                }
-            }
-        },
+    			if (state === 'auto') {
+    				this._target.removeEventListener('dragstart', this._dragHandlr, false);
+    			} else {
+    				this._target.addEventListener('dragstart', this._dragHandlr, false);
+    			}
+    		}
+    	},
     
-        _dragHandlr: function (e) {
-            e.preventDefault();
-        },
+    	_dragHandlr: function (e) {
+    		e.preventDefault();
+    	},
     
-        _addTouchEvent: function () {
-            this._winTouchEvent.addListener( 'touchmove', this._touchHandler, {passive: false} );
-            this._winTouchEvent.addListener( 'touchend', this._touchHandler );
-            this._winTouchEvent.addListener( 'touchcancel', this._touchHandler );
-        },
+    	_addTouchEvent: function () {
+    		this._winTouchEvent.addListener('touchmove', this._touchHandler, { passive: false });
+    		this._winTouchEvent.addListener('touchend', this._touchHandler);
+    		this._winTouchEvent.addListener('touchcancel', this._touchHandler);
+    	},
     
-        //Swip 방향 반환 (left, right, up, down, none)
-        _getSwipType: function ( type, mx, my, swipeTime ) {
-            var swipeSize = 0, result = 'none';
+    	//Swip 방향 반환 (left, right, up, down, none)
+    	_getSwipType: function (type, mx, my, swipeTime) {
+    		var swipeSize = 0, result = 'none';
     
-            if ( type == 'horizontal' ) {
-                swipeSize = this._sensitivityCalibration( this._swipeWidth, swipeTime );
+    		if (type === 'horizontal') {
+    			swipeSize = this._sensitivityCalibration(this._swipeWidth, swipeTime);
     
-                if ( swipeSize <= Math.abs(mx) ) {
-                    if ( mx > 0 ) result = 'right';
-                    if ( mx < 0 ) result = 'left';
-                }
-            } else {
-                swipeSize = this._sensitivityCalibration( this._swipeHeight, swipeTime );
+    			if (swipeSize <= Math.abs(mx)) {
+    				if (mx > 0) result = 'right';
+    				if (mx < 0) result = 'left';
+    			}
+    		} else {
+    			swipeSize = this._sensitivityCalibration(this._swipeHeight, swipeTime);
     
-                if ( swipeSize <= Math.abs(my) ) {
-                    if ( my > 0 ) result = 'down';
-                    if ( my < 0 ) result = 'up';
-                }
-            }
-            return result;
-        },
+    			if (swipeSize <= Math.abs(my)) {
+    				if (my > 0) result = 'down';
+    				if (my < 0) result = 'up';
+    			}
+    		}
+    		return result;
+    	},
     
-        //터치를 빠르게 진행할경우 sensitivity를 민감하게 설정
-        _sensitivityCalibration: function ( swipeSize, swipeTime ) {
-            if ( swipeTime > 50 && swipeTime < 200 ) {
-                return swipeSize * 0.2;
-            } else {
-                return swipeSize;
-            }
-        },
+    	//터치를 빠르게 진행할경우 sensitivity를 민감하게 설정
+    	_sensitivityCalibration: function (swipeSize, swipeTime) {
+    		if (swipeTime > 50 && swipeTime < 200) {
+    			return swipeSize * 0.2;
+    		} else {
+    			return swipeSize;
+    		}
+    	},
     
-        _getSpeed: function ( axis, x, y ) {
-            var result = 0;
+    	_getSpeed: function (axis, x, y) {
+    		var result = 0;
     
-            if ( axis === 'horizontal' ) {
-                result = Math.abs( this._pageX - x );
-            } else {
-                result = Math.abs( this._pageY - y );
-            }
+    		if (axis === 'horizontal') {
+    			result = Math.abs(this._pageX - x);
+    		} else {
+    			result = Math.abs(this._pageY - y);
+    		}
     
-            return result || 0;
-        }
+    		return result || 0;
+    	}
     }, '$B.event.Swipe');
 
 

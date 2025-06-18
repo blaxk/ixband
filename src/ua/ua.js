@@ -50,7 +50,9 @@ ixBand.ua = (function () {
         LINUX: nua.indexOf( 'linux' ) > -1,
         WEBKIT: nua.indexOf( 'webkit' ) > -1,
         MOZILLA: nua.indexOf( 'mozilla' ) > -1,
-        TOUCH_DEVICE: ( 'ontouchstart' in window ) || nua.indexOf( 'touch' ) > -1,
+		// TOUCH_DEVICE: ( 'ontouchstart' in window ) || nua.indexOf( 'touch' ) > -1,
+		//터치 이벤트
+		TOUCH_DEVICE: ('ontouchstart' in window) || ('onpointerdown' in window || navigator.pointerEnabled || navigator.msPointerEnabled),
         MOBILE: nua.indexOf( 'mobile' ) > -1,
         ANDROID_TABLET: false,
         WINDOWS_TABLET: false,
@@ -96,9 +98,9 @@ ixBand.ua = (function () {
         ua.IE_COMPATIBLE = /msie 7.*trident/.test(nua);
     }
 
-    if ( ua.EDGE ) {
-		ua.TOUCH_DEVICE = ( navigator.pointerEnabled || navigator.msPointerEnabled || 'onpointerdown' in window ) && navigator.maxTouchPoints > 0;
-    }
+	// if (ua.EDGE) {
+	// 	// ua.TOUCH_DEVICE = ( navigator.pointerEnabled || navigator.msPointerEnabled || 'onpointerdown' in window ) && navigator.maxTouchPoints > 0;
+    // }
 
     ua.ANDROID_TABLET = ua.ANDROID && !ua.MOBILE;
     ua.WINDOWS_TABLET = ua.WINDOWS && /tablet/.test(nua) && !ua.IE_COMPATIBLE;

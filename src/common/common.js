@@ -1,5 +1,5 @@
 var PX_RATIO = window.devicePixelRatio || 1,
-    MS_POINTER = true,
+    MS_POINTER = false,
     TOUCH_ACTION = 'msTouchAction';
 
 //EventType의 크로스부라우징 처리
@@ -8,15 +8,16 @@ var CrossTouchEvent = {};
 //WindowsPhone IE 11에서는 touchstart event를 지원하지만 touchend 시점에 touche pointer가 있는데도 e.touches.length가 0으로 나오는 문제가 있다.
 if ( 'ontouchstart' in window && !$B.ua.MSIE ) {
     CrossTouchEvent = {touchstart: 'touchstart', touchmove: 'touchmove', touchend: 'touchend', touchcancel: 'touchcancel'};
-    MS_POINTER = false;
     TOUCH_ACTION = 'touchAction';
     //IE11~
 } else if ( navigator.pointerEnabled || 'onpointerdown' in window ) {
     CrossTouchEvent = {touchstart: 'pointerdown', touchmove: 'pointermove', touchend: 'pointerup', touchcancel: 'pointercancel'};
-    TOUCH_ACTION = 'touchAction';
+	MS_POINTER = true;
+	TOUCH_ACTION = 'touchAction';
     //IE10
 } else if ( navigator.msPointerEnabled ) {
-    CrossTouchEvent = {touchstart: 'MSPointerDown', touchmove: 'MSPointerMove', touchend: 'MSPointerUp', touchcancel: 'MSPointerCancel'};
+	CrossTouchEvent = { touchstart: 'MSPointerDown', touchmove: 'MSPointerMove', touchend: 'MSPointerUp', touchcancel: 'MSPointerCancel' };
+	MS_POINTER = true;
 }
 //e.pointerType = (mouse==4, pen==3, touch==2)
 
